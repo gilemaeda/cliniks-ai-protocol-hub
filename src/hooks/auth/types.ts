@@ -1,0 +1,25 @@
+
+import { User, Session } from '@supabase/supabase-js';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  cpf?: string;
+  phone?: string;
+  role: 'clinic_owner' | 'professional' | 'admin';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  session: Session | null;
+  profile: Profile | null;
+  loading: boolean;
+}
+
+export interface AuthActions {
+  signUp: (email: string, password: string, userData: { full_name: string; role?: string; cpf?: string; phone?: string }) => Promise<{ data: any; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
+  signOut: () => Promise<{ error: any }>;
+}

@@ -1,0 +1,37 @@
+{
+	"name": "carbon-theme-dark",
+	"displayName": "Carbon Theme",
+	"description": "Simple dark blue with warm text",
+	"version": "0.0.1",
+	"repository": "https://github.com/oscarnewman/carbon-theme-vscode.git",
+	"publisher": "OscarNewman",
+	"engines": {
+		"vscode": "^1.73.0"
+	},
+	"categories": [
+		"Themes"
+	],
+	"contributes": {
+		"themes": [
+			{
+				"label": "Carbon",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Carbon-color-theme.json"
+			}
+		]
+	},
+	"__metadata": {
+		"id": "bc0db17e-a7b8-454e-b0b6-7a327878821e",
+		"publisherId": "26f1749f-6e2e-45eb-8b57-3b58553ce864",
+		"publisherDisplayName": "Oscar Newman",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1743082870583,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery",
+		"size": 60527
+	}
+}
