@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,24 +7,50 @@ import ChatProtocoloIA from '@/components/protocolos/ChatProtocoloIA';
 import HistoricoProtocolos from '@/components/protocolos/HistoricoProtocolos';
 import ProtocoloEditor from '@/components/protocolos/ProtocoloEditor';
 import ProtocoloManual from '@/components/protocolos/ProtocoloManual';
-import { Protocol } from '@/hooks/useProtocolosQuery';
+import { Protocol, useProtocolosQuery } from '@/hooks/useProtocolosQuery';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const ProtocolosPersonalizados = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('chat-ia');
   const [editingProtocol, setEditingProtocol] = useState<Partial<Protocol> | null>(null);
+  const { data: protocols, isLoading, error, refetch } = useProtocolosQuery(user?.id);
 
-    const handleProtocolGenerated = (protocolContent: string) => {
-    const newProtocol: Partial<Protocol> = {
-      name: 'Protocolo via Chat',
-      description: 'Protocolo gerado a partir da conversa com a IA.',
-      content: protocolContent,
-    };
-    setEditingProtocol(newProtocol);
-    setActiveTab('editor');
+  const handleProtocolGenerated = async (protocolContent: string) => {
+    if (!user?.id) {
+      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { data: clinicData, error: rpcError } = await supabase
+        .rpc('get_user_clinic_data', { user_uuid: user.id });
+
+      if (rpcError || !clinicData || clinicData.length === 0) {
+        throw new Error(rpcError?.message || 'Dados da clínica não encontrados.');
+      }
+      
+      const clinicId = clinicData[0].clinic_id;
+
+      const newProtocol: Partial<Protocol> = {
+        name: 'Protocolo via Chat',
+        description: 'Protocolo gerado a partir da conversa com a IA.',
+        content: protocolContent,
+        clinic_id: clinicId,
+      };
+      setEditingProtocol(newProtocol);
+      setActiveTab('editor');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+      toast({ title: "Erro ao buscar dados da clínica", description: errorMessage, variant: "destructive" });
+    }
   };
 
-    const handleProtocolCreated = (protocol: Partial<Protocol>) => {
+  const handleProtocolCreated = (protocol: Partial<Protocol>) => {
     setEditingProtocol(protocol);
     setActiveTab('editor');
   };
@@ -35,13 +60,14 @@ const ProtocolosPersonalizados = () => {
     setActiveTab('chat-ia');
   };
 
-    const handleEditProtocol = (protocol: Protocol) => {
+  const handleEditProtocol = (protocol: Protocol) => {
     setEditingProtocol(protocol);
     setActiveTab('editor');
   };
 
   const handleSaveProtocol = (savedProtocol: Protocol) => {
     setEditingProtocol(null);
+    refetch(); // Atualiza a lista de protocolos
     setActiveTab('historico');
   };
 
@@ -112,7 +138,13 @@ const ProtocolosPersonalizados = () => {
           </TabsContent>
 
           <TabsContent value="historico">
-            <HistoricoProtocolos onEditProtocol={handleEditProtocol} />
+            <HistoricoProtocolos 
+              protocols={protocols || []} 
+              isLoading={isLoading}
+              error={error}
+              onEditProtocol={handleEditProtocol} 
+              refetchProtocols={refetch}
+            />
           </TabsContent>
         </Tabs>
       </div>

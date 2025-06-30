@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useProtocolosQuery } from '@/hooks/useProtocolosQuery';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,13 +10,15 @@ import { Search, Edit, Copy, Download, Calendar, Trash2, User } from 'lucide-rea
 import { Protocol } from '@/hooks/useProtocolosQuery';
 import jsPDF from 'jspdf';
 
-
-
 interface HistoricoProtocolosProps {
+  protocols: Protocol[];
+  isLoading: boolean;
+  error: Error | null;
   onEditProtocol: (protocol: Protocol) => void;
+  refetchProtocols: () => void;
 }
 
-const HistoricoProtocolos = ({ onEditProtocol }: HistoricoProtocolosProps) => {
+const HistoricoProtocolos = ({ onEditProtocol, protocols, isLoading, error, refetchProtocols }: HistoricoProtocolosProps) => {
   const createSummary = (content: Protocol['content'], length = 100) => {
     const text = typeof content === 'string' ? content : content?.generated_protocol || '';
     if (!text) return 'Sem conteúdo para exibir.';
@@ -28,7 +29,6 @@ const HistoricoProtocolos = ({ onEditProtocol }: HistoricoProtocolosProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: protocols = [], isLoading: loading, error, refetch } = useProtocolosQuery(user?.id);
 
   useEffect(() => {
     if (error) {
@@ -70,7 +70,7 @@ const HistoricoProtocolos = ({ onEditProtocol }: HistoricoProtocolosProps) => {
         description: "Uma cópia do protocolo foi criada com sucesso."
       });
 
-      refetch();
+      refetchProtocols();
     } catch (e) {
       const err = e as Error;
       console.error('Erro ao duplicar protocolo:', err);
@@ -96,7 +96,7 @@ const HistoricoProtocolos = ({ onEditProtocol }: HistoricoProtocolosProps) => {
         description: "O protocolo foi removido com sucesso.",
       });
 
-      refetch();
+      refetchProtocols();
     } catch (e) {
       const err = e as Error;
       console.error('Erro ao excluir protocolo:', err);
@@ -160,19 +160,22 @@ const HistoricoProtocolos = ({ onEditProtocol }: HistoricoProtocolosProps) => {
     });
   };
 
-  const filteredProtocols = protocols.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.therapeutic_objective?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
+  const filteredProtocols = protocols.filter(p => {
+    const contentText = typeof p.content === 'string' ? p.content : p.content?.generated_protocol || '';
+    const searchTermLower = searchTerm.toLowerCase();
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <p className="text-gray-500">Carregando protocolos...</p>
-        </CardContent>
-      </Card>
+      p.name?.toLowerCase().includes(searchTermLower) ||
+      p.description?.toLowerCase().includes(searchTermLower) ||
+      contentText.toLowerCase().includes(searchTermLower) ||
+      p.therapeutic_objective?.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      </div>
     );
   }
 

@@ -48,6 +48,7 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [clinicId, setClinicId] = useState<string | null>(null);
 
   // Dados do protocolo
   const [protocolName, setProtocolName] = useState('');
@@ -65,8 +66,8 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
   const [isFetchingResources, setIsFetchingResources] = useState(false);
 
   useEffect(() => {
-    const fetchClinicResources = async () => {
-      if (resourceSource === 'central' && user?.id) {
+    const fetchClinicData = async () => {
+      if (user?.id) {
         setIsFetchingResources(true);
         try {
           // Acessa a função RPC para obter o clinic_id do usuário logado
@@ -77,22 +78,28 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
             throw new Error(rpcError?.message || 'Dados da clínica não encontrados para buscar recursos.');
           }
           
-          const clinicId = clinicData[0].clinic_id;
+          const currentClinicId = clinicData[0].clinic_id;
+          setClinicId(currentClinicId);
 
-          if (!clinicId) {
+          if (!currentClinicId) {
             throw new Error('ID da clínica não retornado pela função RPC.');
           }
 
-          const { data, error } = await supabase
-            .from('clinic_resources')
-            .select('id, name, resource_type')
-            .eq('clinic_id', clinicId);
-
-          if (error) {
-            throw error;
+          if (resourceSource === 'central') {
+            const { data, error } = await supabase
+              .from('clinic_resources')
+              .select('id, name, resource_type')
+              .eq('clinic_id', currentClinicId);
+  
+            if (error) {
+              throw error;
+            }
+  
+            setClinicResources(data || []);
+          } else {
+            setClinicResources([]);
           }
 
-          setClinicResources(data || []);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os recursos da clínica.';
           toast({
@@ -106,7 +113,7 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
       }
     };
 
-    fetchClinicResources();
+    fetchClinicData();
   }, [resourceSource, user?.id, toast]);
 
   const handleResourceSelection = (resourceId: string) => {
@@ -140,7 +147,18 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
       toast({ title: "Campos Obrigatórios", description: "Nome do Protocolo e Objetivos Terapêuticos são obrigatórios.", variant: "destructive" });
       return;
     }
+
+    if (!clinicId) {
+      toast({
+        title: 'Erro de Inicialização',
+        description: 'A identificação da clínica ainda não foi carregada. Por favor, aguarde alguns segundos e tente novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
+
     try {
       const finalMaterials = resourceSource === 'manual' ? materials : clinicResources
         .filter(r => selectedResources.includes(r.id))
@@ -172,6 +190,7 @@ const ProtocoloManual = ({ onProtocolCreated }: ProtocoloManualProps) => {
         duration_weeks: duration ? parseInt(duration) : null,
         area,
         protocol_theme: procedures,
+        clinic_id: clinicId,
         created_by: user?.id
       };
 

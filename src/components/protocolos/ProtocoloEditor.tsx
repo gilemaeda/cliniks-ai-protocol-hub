@@ -122,7 +122,7 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
 
     try {
       const { data, error } = await supabase
-        .from('protocols')
+        .from('custom_protocols')
         .upsert(upsertPayload)
         .select()
         .single();
