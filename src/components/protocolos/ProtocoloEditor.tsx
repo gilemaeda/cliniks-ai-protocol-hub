@@ -80,7 +80,7 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
     }
   }, [protocol]);
 
-  const handleSave = async () => {
+  const handleSaveChanges = async () => {
     if (!protocol) return;
 
     if (!protocol.clinic_id) {
@@ -281,15 +281,20 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
   }
 
   return (
-    <div className="p-6 bg-gray-900 text-white rounded-lg shadow-lg">
+    <div className="p-6 bg-gray-800 text-white rounded-lg shadow-lg">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Editor de Protocolo</h2>
+        <h2 className="text-2xl font-bold text-blue-300">Editor de Protocolo</h2>
         <div>
-          <Button onClick={onBack} variant="secondary" className="mr-2">Voltar</Button>
-          <Button onClick={() => setIsEditing(!isEditing)} variant="secondary" className="mr-2">
-            {isEditing ? 'Visualizar' : 'Editar'}
+          <Button onClick={onBack} variant="secondary" className="mr-2 bg-gray-600 hover:bg-gray-500">Voltar</Button>
+          <Button onClick={() => setIsEditing(!isEditing)} variant="secondary" className="mr-2 bg-gray-600 hover:bg-gray-500">
+            {isEditing ? 'Cancelar' : 'Editar'}
           </Button>
-          <Button onClick={handleExportPDF} disabled={isSaving}>
+          {!isEditing && (
+            <Button onClick={handleSaveChanges} disabled={isSaving} className="mr-2 bg-green-600 hover:bg-green-500 text-white">
+              {isSaving ? 'Salvando...' : 'Salvar Protocolo'}
+            </Button>
+          )}
+          <Button onClick={handleExportPDF} disabled={isSaving} className="bg-blue-600 hover:bg-blue-500 text-white">
             {isSaving ? 'Exportando...' : 'Exportar para PDF'}
           </Button>
         </div>
@@ -298,30 +303,30 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
       {isEditing ? (
         <div className="space-y-4">
           <div>
-            <label htmlFor="protocol-name" className="block text-sm font-medium mb-1">Nome do Protocolo</label>
+            <label htmlFor="protocol-name" className="block text-sm font-medium mb-1 text-blue-200">Nome do Protocolo</label>
             <Input
               id="protocol-name"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
-              className="bg-gray-800 border-gray-700"
+              className="bg-gray-700 border-gray-500 text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
           </div>
           <div>
-            <label htmlFor="protocol-content" className="block text-sm font-medium mb-1">Conteúdo do Protocolo</label>
+            <label htmlFor="protocol-content" className="block text-sm font-medium mb-1 text-blue-200">Conteúdo do Protocolo</label>
             <Textarea
               id="protocol-content"
               value={localContent}
               onChange={(e) => setLocalContent(e.target.value)}
               rows={20}
-              className="bg-gray-800 border-gray-700"
+              className="bg-gray-700 border-gray-500 text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
           </div>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSaveChanges} disabled={isSaving} className="bg-green-600 hover:bg-green-500 text-white">
             {isSaving ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
       ) : (
-        <div className="bg-gray-800 p-6 rounded-lg">
+        <div className="bg-gray-700 p-6 rounded-lg border border-gray-600">
           {clinicBranding?.banner_url && (
             <div className="mb-6">
               <img src={clinicBranding.banner_url} alt="Banner da clínica" className="w-full h-auto rounded-md object-cover" />
@@ -329,20 +334,30 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
           )}
           
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-2xl font-bold text-white flex-grow">{localName}</h3>
+            <h3 className="text-2xl font-bold text-blue-300 flex-grow">{localName}</h3>
             {clinicBranding && (
               <div className="text-right flex-shrink-0 ml-4">
                 {clinicBranding.logo_url && (
                   <img src={clinicBranding.logo_url} alt="Logo da clínica" className="w-24 h-auto ml-auto mb-2" />
                 )}
                 {clinicBranding.name && (
-                  <p className="text-sm font-semibold text-gray-300">{clinicBranding.name}</p>
+                  <p className="text-sm font-semibold text-blue-200">{clinicBranding.name}</p>
                 )}
               </div>
             )}
           </div>
 
-          <div ref={contentRef} className="prose prose-lg dark:prose-invert max-w-none">
+          <div ref={contentRef} className="prose prose-lg max-w-none 
+            prose-headings:text-blue-300 
+            prose-h1:text-2xl prose-h1:font-bold 
+            prose-h2:text-xl prose-h2:font-bold 
+            prose-h3:text-lg prose-h3:font-bold 
+            prose-p:text-gray-100 
+            prose-strong:text-white prose-strong:font-bold 
+            prose-em:text-blue-200 
+            prose-li:text-gray-100
+            prose-a:text-blue-400 prose-a:underline
+            prose-hr:border-gray-600">
             <ReactMarkdown
               rehypePlugins={[rehypeRaw]}
             >
