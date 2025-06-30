@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Camera, Search, Filter, Eye, Calendar, User, Plus, AlertCircle, Loader2, Upload, Sparkles } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ArrowLeft, Camera, Search, Filter, Eye, Trash2, Calendar, User, Plus, AlertCircle, Loader2, Upload, Sparkles, Pencil, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +79,14 @@ const GaleriaFotos = () => {
   const [newPhotoDescription, setNewPhotoDescription] = useState('');
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState<PatientPhoto | null>(null);
+
+  const [isViewPhotoOpen, setIsViewPhotoOpen] = useState(false);
+  const [photoToView, setPhotoToView] = useState<PatientPhoto | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedPhoto, setEditedPhoto] = useState<Partial<PatientPhoto>>({});
 
   const fetchPhotos = useCallback(async () => {
     if (!user) return;
@@ -259,6 +268,79 @@ const GaleriaFotos = () => {
     }
   };
 
+  const handleDeletePhoto = async () => {
+    if (!photoToDelete) return;
+
+    try {
+      // Extrair o caminho do arquivo da URL
+      const filePath = new URL(photoToDelete.photo_url).pathname.split('/patient-photos/')[1];
+      
+      // 1. Deletar o arquivo do Storage
+      const { error: storageError } = await supabase.storage
+        .from('patient-photos')
+        .remove([filePath]);
+
+      if (storageError) {
+        console.error('Erro ao deletar foto do Storage:', storageError);
+        toast({ title: "Erro no Storage", description: storageError.message, variant: "destructive" });
+        // Não paramos aqui, tentamos deletar do DB mesmo assim
+      }
+
+      // 2. Deletar o registro do banco de dados
+      const { error: dbError } = await supabase
+        .from('patient_photos')
+        .delete()
+        .eq('id', photoToDelete.id);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      toast({ title: "Sucesso", description: "Foto excluída com sucesso." });
+      setPhotos(photos.filter(p => p.id !== photoToDelete.id));
+    } catch (error: any) {
+      console.error('Erro ao deletar foto:', error);
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setPhotoToDelete(null);
+    }
+  };
+
+  const handleViewPhoto = (photo: PatientPhoto) => {
+    setPhotoToView(photo);
+    setIsViewPhotoOpen(true);
+    setIsEditing(false);
+    setEditedPhoto({});
+  };
+
+  const handleEditChange = (field: keyof PatientPhoto, value: string) => {
+    setEditedPhoto(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!photoToView) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('patient_photos')
+        .update(editedPhoto)
+        .eq('id', photoToView.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Informações da foto atualizadas." });
+      setPhotos(photos.map(p => p.id === data.id ? { ...p, ...data } : p));
+      setPhotoToView({ ...photoToView, ...data });
+      setIsEditing(false);
+    } catch (error: any) {
+      console.error('Erro ao editar foto:', error);
+      toast({ title: "Erro ao editar", description: error.message, variant: "destructive" });
+    }
+  };
+
   const filteredPhotos = photos
     .filter(photo => photo.full_name?.toLowerCase().includes(searchTerm.toLowerCase()))
     .filter(photo => filterPatient === 'all' || photo.patient_id === filterPatient)
@@ -403,7 +485,10 @@ const GaleriaFotos = () => {
                     <img src={photo.photo_url} alt={`Foto de ${photo.full_name}`} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Button variant="secondary" size="sm"><Eye className="h-4 w-4" /></Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleViewPhoto(photo)}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="destructive" size="sm" className="ml-2" onClick={() => { setPhotoToDelete(photo); setIsDeleteDialogOpen(true); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="mt-2">
                     <p className="font-semibold text-sm truncate">{photo.full_name}</p>
@@ -441,7 +526,10 @@ const GaleriaFotos = () => {
                           <img src={photo.photo_url} alt={`Foto de ${patientName}`} className="w-full h-full object-cover" />
                         </div>
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <Button variant="secondary" size="sm"><Eye className="h-4 w-4" /></Button>
+                          <Button variant="secondary" size="sm" onClick={() => handleViewPhoto(photo)}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="destructive" size="sm" className="ml-2" onClick={() => { setPhotoToDelete(photo); setIsDeleteDialogOpen(true); }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {photo.session_date && (
@@ -461,6 +549,104 @@ const GaleriaFotos = () => {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a foto do paciente
+              <span className="font-bold"> {photoToDelete?.patients?.full_name || photoToDelete?.full_name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePhoto}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isViewPhotoOpen} onOpenChange={setIsViewPhotoOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader className="flex flex-row justify-between items-center">
+            <DialogTitle>{photoToView?.patients?.full_name || photoToView?.full_name}</DialogTitle>
+            <div>
+              {isEditing ? (
+                <Button onClick={handleSaveEdit}><Save className="h-4 w-4 mr-2" />Salvar</Button>
+              ) : (
+                <Button variant="outline" onClick={() => setIsEditing(true)}><Pencil className="h-4 w-4 mr-2" />Editar</Button>
+              )}
+            </div>
+          </DialogHeader>
+          {photoToView && (
+            <div>
+              <img src={photoToView.photo_url} alt={`Foto de ${photoToView.full_name}`} className="max-w-full max-h-[80vh] mx-auto" />
+              <div className="mt-4 text-sm text-muted-foreground space-y-2">
+                <div>
+                  <strong>Tipo:</strong>
+                  {isEditing ? (
+                    <Select
+                      value={editedPhoto.photo_type || photoToView.photo_type}
+                      onValueChange={(value) => handleEditChange('photo_type', value)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="antes">Antes</SelectItem>
+                        <SelectItem value="depois">Depois</SelectItem>
+                        <SelectItem value="acompanhamento">Acompanhamento</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="ml-2">{getPhotoTypeLabel(photoToView.photo_type)}</span>
+                  )}
+                </div>
+                <div>
+                  <strong>Data:</strong>
+                  {isEditing ? (
+                    <Input
+                      type="date"
+                      value={editedPhoto.session_date || photoToView.session_date?.split('T')[0] || ''}
+                      onChange={(e) => handleEditChange('session_date', e.target.value)}
+                    />
+                  ) : (
+                    <span className="ml-2">{photoToView.session_date ? new Date(photoToView.session_date).toLocaleDateString() : 'N/A'}</span>
+                  )}
+                </div>
+                <div>
+                  <strong>Área:</strong>
+                  {isEditing ? (
+                    <Select
+                      value={editedPhoto.treatment_area || photoToView.treatment_area}
+                      onValueChange={(value) => handleEditChange('treatment_area', value)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {treatmentAreas.map(area => (
+                          <SelectItem key={area.value} value={area.value}>{area.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="ml-2">{treatmentAreas.find(a => a.value === photoToView.treatment_area)?.label || 'N/A'}</span>
+                  )}
+                </div>
+                <div>
+                  <strong>Descrição:</strong>
+                  {isEditing ? (
+                    <Input
+                      value={editedPhoto.description || photoToView.description || ''}
+                      onChange={(e) => handleEditChange('description', e.target.value)}
+                    />
+                  ) : (
+                    <p className="ml-2 inline">{photoToView.description || 'N/A'}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
