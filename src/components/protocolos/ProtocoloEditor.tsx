@@ -80,6 +80,32 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
     }
   }, [protocol]);
 
+  const getImageAsBase64 = (path: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous'; // Tenta resolver problemas de CORS
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataURL = canvas.toDataURL('image/png');
+          resolve(dataURL);
+        } else {
+          reject(new Error('Não foi possível obter o contexto do canvas.'));
+        }
+      };
+      img.onerror = (error) => {
+        // Tenta buscar a imagem via proxy para contornar CORS, se aplicável
+        console.error(`Erro ao carregar imagem de ${path}:`, error);
+        reject(new Error(`Não foi possível carregar a imagem de ${path}. Verifique as permissões de CORS.`));
+      };
+      img.src = path;
+    });
+  };
+
   const handleSaveChanges = async () => {
     if (!protocol) return;
 
@@ -160,117 +186,79 @@ const ProtocoloEditor: React.FC<ProtocoloEditorProps> = ({ protocol, onSave, onB
     }
   };
 
-  const getImageAsBase64 = async (path: string): Promise<string> => {
-    try {
-      const cleanedPath = path.startsWith('/') ? path.substring(1) : path;
-      const { data: publicUrlData } = supabase.storage.from('clinic-assets').getPublicUrl(cleanedPath);
-      
-      if (!publicUrlData) {
-        throw new Error(`Não foi possível obter a URL pública para: ${cleanedPath}`);
-      }
-      const publicURL = publicUrlData.publicUrl;
-      
-      const response = await fetch(publicURL);
-      if (!response.ok) {
-        throw new Error(`Falha ao buscar a imagem: ${response.statusText}`);
-      }
-      const blob = await response.blob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error(`Erro ao converter imagem ${path} para base64:`, error);
-      return '';
-    }
-  };
+  const buildPdfDocDefinition = async (
+    protocolName: string, 
+    htmlContent: string, 
+    brandingData: ClinicBranding | null
+  ) => {
+    const headerStack: Content[] = [];
 
-  const buildPdfDocDefinition = async (protocolName: string, htmlContent: string, brandingData: ClinicBranding | null) => {
-    let headerImage = '';
-    let bannerImage = '';
+    if (brandingData) {
+      try {
+        if (brandingData.banner_url) {
+          const bannerBase64 = await getImageAsBase64(brandingData.banner_url);
+          headerStack.push({ image: bannerBase64, width: 515, alignment: 'center', margin: [0, 0, 0, 10] });
+        }
 
-    if (brandingData?.logo_url) {
-      headerImage = await getImageAsBase64(brandingData.logo_url);
-    }
-    if (brandingData?.banner_url) {
-      bannerImage = await getImageAsBase64(brandingData.banner_url);
-    }
+        const logoAndNameStack: Content[] = [];
+        if (brandingData.logo_url) {
+          const logoBase64 = await getImageAsBase64(brandingData.logo_url);
+          logoAndNameStack.push({ image: logoBase64, width: 80, alignment: 'right' });
+        }
+        if (brandingData.name) {
+          logoAndNameStack.push({ text: brandingData.name, style: 'clinicName', alignment: 'right' });
+        }
 
-    const header = () => {
-      if (!headerImage && !brandingData?.name) return null;
-      return {
-        columns: [
-          { text: '' }, // Coluna vazia para empurrar para a direita
-          {
-            alignment: 'right',
-            margin: [0, 20, 40, 0], // Margem: [esquerda, topo, direita, baixo]
-            stack: [
-              ...(headerImage ? [{ image: headerImage, width: 70 }] : []),
-              ...(brandingData?.name ? [{ text: brandingData.name, fontSize: 10, bold: true, margin: [0, 5, 0, 0] }] : [])
+        if (logoAndNameStack.length > 0) {
+          headerStack.push({
+            columns: [
+              { text: '', width: '*' }, // Espaçador para empurrar para a direita
+              { stack: logoAndNameStack, width: 'auto' }
             ]
-          }
-        ]
-      };
-    };
-
-    const docContent: Content = [];
-
-    if (bannerImage) {
-      docContent.push({
-        image: bannerImage,
-        width: 500, // Largura reduzida do banner
-        alignment: 'center',
-        marginBottom: 10, // Margem inferior reduzida
-      });
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao processar imagens para o PDF:", error);
+        toast({ title: 'Erro de Imagem', description: (error as Error).message, variant: 'destructive' });
+      }
     }
-
-    docContent.push({
-      text: protocolName,
-      style: 'protocolTitle',
-      alignment: 'center',
-      marginBottom: 20,
-    });
-
-    // Converte o HTML do conteúdo do protocolo para o formato do pdfmake
-    const pdfMakeContent = htmlToPdfmake(htmlContent);
-    docContent.push(...(Array.isArray(pdfMakeContent) ? pdfMakeContent : [pdfMakeContent]));
 
     const docDefinition = {
-      header,
-      content: docContent,
+      header: headerStack.length > 0 ? { stack: headerStack, margin: [40, 20, 40, 0] } : undefined,
+      pageMargins: [40, 150, 40, 60], // Margens: [esquerda, topo, direita, baixo]
+      content: [
+        { text: protocolName, style: 'header', alignment: 'center', margin: [0, 0, 0, 20] },
+        htmlToPdfmake(htmlContent)
+      ],
       styles: {
-        protocolTitle: {
+        header: {
           fontSize: 22,
           bold: true,
         },
+        clinicName: {
+          fontSize: 12,
+          bold: true,
+          margin: [0, 5, 0, 0]
+        }
       },
       defaultStyle: {
-        fontSize: 12,
-        lineHeight: 1.15,
-      },
-      pageMargins: [40, 80, 40, 60], // Margens: [esquerda, topo, direita, baixo]
+        font: 'Roboto'
+      }
     };
+
     return docDefinition;
   };
 
   const handleExportPDF = async () => {
-    if (!protocol || !contentRef.current) return;
+    if (!contentRef.current) return;
 
     setIsSaving(true);
     try {
-      const html = contentRef.current.innerHTML;
-      const docDefinition = await buildPdfDocDefinition(localName, html, clinicBranding);
-      pdfMake.createPdf(docDefinition).download(`${localName}.pdf`);
+      const docDefinition = await buildPdfDocDefinition(localName, contentRef.current.innerHTML, clinicBranding);
+      pdfMake.createPdf(docDefinition as any).download(`${localName.replace(/\s+/g, '_').toLowerCase()}_protocolo.pdf`);
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
-      toast({
-        title: "Erro ao Exportar",
-        description: "Não foi possível gerar o PDF. Verifique o console para mais detalhes.",
-        variant: "destructive",
-      });
+      toast({ title: 'Erro ao Exportar', description: 'Não foi possível gerar o PDF.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
