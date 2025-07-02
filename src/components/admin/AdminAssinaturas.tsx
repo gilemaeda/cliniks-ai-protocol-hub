@@ -6,7 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, RefreshCcw, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Search, RefreshCcw, CheckCircle, XCircle, MoreHorizontal, Trash2, Calendar, CalendarClock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Subscription {
   id: string;
@@ -37,6 +54,13 @@ const AdminAssinaturas = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddMonthsDialogOpen, setIsAddMonthsDialogOpen] = useState(false);
+  const [isAddTrialDialogOpen, setIsAddTrialDialogOpen] = useState(false);
+  const [monthsToAdd, setMonthsToAdd] = useState(1);
+  const [daysToAdd, setDaysToAdd] = useState(7);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
@@ -157,6 +181,163 @@ const AdminAssinaturas = () => {
     }
   };
 
+  // Função para excluir uma assinatura
+  const handleDeleteSubscription = async () => {
+    if (!selectedSubscription) return;
+    
+    setActionLoading(true);
+    try {
+      // 1. Excluir a assinatura no Supabase
+      const { error } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('id', selectedSubscription.id);
+
+      if (error) throw error;
+
+      // 2. Atualizar a lista de assinaturas
+      setSubscriptions(subscriptions.filter(sub => sub.id !== selectedSubscription.id));
+      setFilteredSubscriptions(filteredSubscriptions.filter(sub => sub.id !== selectedSubscription.id));
+      
+      toast({
+        title: "Assinatura excluída",
+        description: `A assinatura da clínica ${selectedSubscription.clinics?.name} foi excluída com sucesso.`,
+      });
+      
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao excluir assinatura:', error);
+      toast({
+        title: "Erro ao excluir assinatura",
+        description: "Não foi possível excluir a assinatura. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Função para adicionar meses ao plano ativo
+  const handleAddActivePlanMonths = async () => {
+    if (!selectedSubscription) return;
+    
+    setActionLoading(true);
+    try {
+      // Calcular nova data de vencimento
+      const currentDueDate = new Date(selectedSubscription.next_due_date);
+      const newDueDate = new Date(currentDueDate);
+      newDueDate.setMonth(newDueDate.getMonth() + monthsToAdd);
+      
+      // Atualizar a assinatura no Supabase
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .update({
+          next_due_date: newDueDate.toISOString(),
+          status: 'active' // Garantir que o status seja ativo
+        })
+        .eq('id', selectedSubscription.id)
+        .select();
+
+      if (error) throw error;
+
+      // Atualizar a lista de assinaturas
+      const updatedSubscriptions = subscriptions.map(sub => {
+        if (sub.id === selectedSubscription.id && data[0]) {
+          return { ...sub, ...data[0] };
+        }
+        return sub;
+      });
+      
+      setSubscriptions(updatedSubscriptions);
+      setFilteredSubscriptions(updatedSubscriptions.filter(sub => 
+        searchTerm.trim() === '' || 
+        sub.clinics?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.cnpj?.includes(searchTerm) ||
+        sub.clinics?.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
+      ));
+      
+      toast({
+        title: "Plano ativo estendido",
+        description: `${monthsToAdd} ${monthsToAdd === 1 ? 'mês adicionado' : 'meses adicionados'} ao plano da clínica ${selectedSubscription.clinics?.name}.`,
+      });
+      
+      setIsAddMonthsDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao adicionar meses ao plano:', error);
+      toast({
+        title: "Erro ao estender plano",
+        description: "Não foi possível adicionar meses ao plano. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Função para adicionar dias de teste
+  const handleAddTrialDays = async () => {
+    if (!selectedSubscription) return;
+    
+    setActionLoading(true);
+    try {
+      // Calcular nova data de vencimento
+      const currentDueDate = new Date(selectedSubscription.next_due_date);
+      const newDueDate = new Date(currentDueDate);
+      newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+      
+      // Atualizar a assinatura no Supabase
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .update({
+          next_due_date: newDueDate.toISOString(),
+          status: 'active', // Garantir que o status seja ativo
+          plan_name: 'Teste' // Alterar o nome do plano para indicar que é um período de teste
+        })
+        .eq('id', selectedSubscription.id)
+        .select();
+
+      if (error) throw error;
+
+      // Atualizar a lista de assinaturas
+      const updatedSubscriptions = subscriptions.map(sub => {
+        if (sub.id === selectedSubscription.id && data[0]) {
+          return { ...sub, ...data[0] };
+        }
+        return sub;
+      });
+      
+      setSubscriptions(updatedSubscriptions);
+      setFilteredSubscriptions(updatedSubscriptions.filter(sub => 
+        searchTerm.trim() === '' || 
+        sub.clinics?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.cnpj?.includes(searchTerm) ||
+        sub.clinics?.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
+      ));
+      
+      toast({
+        title: "Período de teste estendido",
+        description: `${daysToAdd} ${daysToAdd === 1 ? 'dia adicionado' : 'dias adicionados'} ao período de teste da clínica ${selectedSubscription.clinics?.name}.`,
+      });
+      
+      setIsAddTrialDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao adicionar dias de teste:', error);
+      toast({
+        title: "Erro ao estender período de teste",
+        description: "Não foi possível adicionar dias ao período de teste. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -212,6 +393,7 @@ const AdminAssinaturas = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Próximo Vencimento</TableHead>
                     <TableHead>Forma de Pagamento</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -239,6 +421,49 @@ const AdminAssinaturas = () => {
                       <TableCell>{getStatusBadge(subscription.status)}</TableCell>
                       <TableCell>{formatDate(subscription.next_due_date)}</TableCell>
                       <TableCell>{getBillingTypeText(subscription.billing_type)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Gerenciar</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Gerenciar Assinatura</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedSubscription(subscription);
+                                setIsAddMonthsDialogOpen(true);
+                              }}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Adicionar meses de plano ativo
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedSubscription(subscription);
+                                setIsAddTrialDialogOpen(true);
+                              }}
+                            >
+                              <CalendarClock className="mr-2 h-4 w-4" />
+                              Adicionar dias de teste
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => {
+                                setSelectedSubscription(subscription);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir assinatura
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

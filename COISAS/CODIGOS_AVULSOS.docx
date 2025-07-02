@@ -1,0 +1,152 @@
+/*
+
+{{ ... }}
+import AdminPromptIA from '@/components/admin/AdminPromptIA';
+import AdminChatProtocolPrompt from '@/components/admin/AdminChatProtocolPrompt';
+import AdminSettings from '@/components/admin/AdminSettings';
+import AdminSubscriptions from '@/components/admin/AdminSubscriptions'; // <-- Importa o novo componente
+
+const AdminPanel = () => {
+{{ ... }}
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-8 w-full mb-6"> { <-- Altera para 8 colunas }
+                <TabsTrigger value="stats" className="flex items-center space-x-2">
+ {{ ... }}
+                  <span className="hidden sm:inline">Planos</span>
+                </TabsTrigger>
+                {// Nova Aba de Assinaturas }
+                <TabsTrigger value="subscriptions" className="flex items-center space-x-2">
+                  <CreditCard className="h-4 w-4 text-green-500" />
+                  <span className="hidden sm:inline">Assinaturas</span>
+                </TabsTrigger>
+                <TabsTrigger value="coupons" className="flex items-center space-x-2">
+                  <Tag className="h-4 w-4" />
+{{ ... }}
+              <TabsContent value="plans" className="mt-6">
+                <AdminPlans />
+              </TabsContent>
+
+              // Conteúdo da nova aba
+              <TabsContent value="subscriptions" className="mt-6">
+                <AdminSubscriptions />
+              </TabsContent>
+
+              <TabsContent value="coupons" className="mt-6">
+                <AdminCoupons />
+{{ ... }}
+*/
+
+//////////////////////////////////////////////////////////////////
+
+/*
+AdminSubscriptions.tsx
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+
+// Define a interface para os dados da clínica que vamos buscar
+interface Clinic {
+  id: string;
+  name: string;
+  subscription_status: string;
+  subscription_expires_at: string | null;
+  n8n_webhook_url: string | null;
+}
+
+const AdminSubscriptions: React.FC = () => {
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchClinics();
+  }, []);
+
+  // Função para buscar os dados das clínicas no Supabase
+  const fetchClinics = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('clinics')
+      .select('id, name, subscription_status, subscription_expires_at, n8n_webhook_url')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar clínicas:', error);
+      toast({ title: 'Erro ao buscar clínicas', description: error.message, variant: 'destructive' });
+    } else {
+      setClinics(data || []);
+    }
+    setLoading(false);
+  };
+
+  // Função para salvar as alterações de uma clínica
+  const handleSave = async (clinicId: string, webhookUrl: string | null) => {
+    const { error } = await supabase
+      .from('clinics')
+      .update({ n8n_webhook_url: webhookUrl })
+      .eq('id', clinicId);
+
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Sucesso!', description: 'URL do webhook salva com sucesso.' });
+      fetchClinics(); // Re-busca os dados para atualizar a UI
+    }
+  };
+
+  if (loading) {
+    return <div>Carregando clínicas...</div>;
+  }
+
+  return (
+    <div>
+      <h3 className="text-lg font-medium mb-4">Gerenciamento de Assinaturas e Webhooks</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clínica</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expira em</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL do Webhook (n8n)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {clinics.map((clinic) => (
+              <tr key={clinic.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{clinic.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{clinic.subscription_status}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {clinic.subscription_expires_at ? new Date(clinic.subscription_expires_at).toLocaleDateString() : 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Input
+                    defaultValue={clinic.n8n_webhook_url || ''}
+                    onChange={(e) => {
+                      // Atualiza o estado localmente para permitir o salvamento
+                      const newClinics = clinics.map(c => c.id === clinic.id ? { ...c, n8n_webhook_url: e.target.value } : c);
+                      setClinics(newClinics);
+                    }}
+                    placeholder="Cole a URL do webhook do n8n aqui"
+                  />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Button onClick={() => handleSave(clinic.id, clinic.n8n_webhook_url)}>Salvar</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default AdminSubscriptions;
+
+*/

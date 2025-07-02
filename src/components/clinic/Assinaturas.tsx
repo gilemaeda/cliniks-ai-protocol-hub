@@ -202,8 +202,29 @@ const Assinaturas = () => {
 
       if (error) {
         console.error('Erro retornado pela Edge Function:', error);
+        console.error('Detalhes completos do erro:', JSON.stringify(error, null, 2));
         
-        if (error.context?.status === 500) {
+        if (error.context?.status === 400) {
+          try {
+            const responseText = await error.context.json();
+            console.error('Detalhes do erro 400:', responseText);
+            
+            toast({ 
+              title: 'Erro na requisição', 
+              description: responseText.error || 'A requisição contém dados inválidos ou incompletos.', 
+              variant: 'destructive', 
+              duration: 9000 
+            });
+          } catch (jsonError) {
+            console.error('Erro ao processar resposta JSON do erro 400:', jsonError);
+            toast({ 
+              title: 'Erro na requisição', 
+              description: 'A requisição contém dados inválidos ou incompletos.', 
+              variant: 'destructive', 
+              duration: 9000 
+            });
+          }
+        } else if (error.context?.status === 500) {
           try {
             const responseText = await error.context.json();
             console.error('Detalhes do erro 500:', responseText);
@@ -293,7 +314,7 @@ const Assinaturas = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Plano Atual</h3>
                 <p className="text-2xl font-bold">{subscription.plan_name}</p>
-                <p>{getStatusBadge(subscription.status)}</p>
+                <div>{getStatusBadge(subscription.status)}</div>
               </div>
               <div className="space-y-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                 <h3 className="text-lg font-medium">Pagamento</h3>

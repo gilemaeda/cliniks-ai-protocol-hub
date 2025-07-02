@@ -1,6 +1,11 @@
-import { serve } from 'std/http/server.ts';
-import { createClient } from '@supabase/supabase-js';
-import { corsHeaders } from '../_shared/cors.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// Definição de CORS headers já que o arquivo compartilhado pode não estar disponível
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Tipos para a API do Asaas
 interface AsaasCustomerRequest {
@@ -29,19 +34,34 @@ serve(async (req) => {
   }
 
   try {
-    // Inicializa o cliente Supabase com a chave de serviço
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Obtém a chave da API do Asaas do ambiente
+    console.log('--- INICIANDO FUNÇÃO ---');
+    console.log('Verificando variáveis de ambiente...');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
     const asaasApiKey = Deno.env.get('ASAAS_API_KEY');
     const asaasBaseUrl = Deno.env.get('ASAAS_API_URL') || 'https://api.asaas.com/v3';
+    
+    console.log('SUPABASE_URL disponível:', !!supabaseUrl);
+    console.log('SERVICE_ROLE_KEY disponível:', !!serviceRoleKey);
+    console.log('ASAAS_API_KEY disponível:', !!asaasApiKey);
+    console.log('ASAAS_API_URL:', asaasBaseUrl);
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Variáveis de ambiente do Supabase não configuradas corretamente.');
+    }
     
     if (!asaasApiKey) {
       throw new Error('Chave da API do Asaas não configurada.');
     }
+    
+    // Inicializa o cliente Supabase com a chave de serviço
+    console.log('Inicializando cliente Supabase...');
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      serviceRoleKey
+    );
+
+    // Já verificamos as variáveis de ambiente acima
 
     // Extrai os dados da requisição
     const payload = await req.json();
@@ -56,38 +76,104 @@ serve(async (req) => {
       });
     }
 
+    // Declarar a variável clinicData em um escopo mais amplo
+    let clinicData: any;
+    
     // Busca os dados da clínica
-    // Buscar dados da clínica
-    const { data: clinicData, error: clinicError } = await supabaseAdmin
-      .from('clinics')
-      .select('id, name, cnpj, owner_id')
-      .eq('id', clinicId)
-      .single();
+    console.log('Buscando dados da clínica com ID:', clinicId);
+    try {
+      const { data, error: clinicError } = await supabaseAdmin
+        .from('clinics')
+        .select('id, name, cnpj, owner_id')
+        .eq('id', clinicId)
+        .single();
       
-    console.log('Dados da clínica:', JSON.stringify(clinicData, null, 2));
-
-    if (clinicError || !clinicData) {
-      console.error('Erro ao buscar dados da clínica:', clinicError);
-      throw new Error('Falha ao buscar dados da clínica.');
+      // Atribuir o valor à variável clinicData declarada no escopo mais amplo
+      clinicData = data;
+        
+      console.log('Resposta da consulta da clínica:');
+      console.log('- Dados:', clinicData ? 'Dados encontrados' : 'Nenhum dado');
+      console.log('- Erro:', clinicError ? JSON.stringify(clinicError) : 'Nenhum erro');
+      
+      if (clinicData) {
+        console.log('Dados da clínica:', JSON.stringify(clinicData, null, 2));
+      }
+      
+      if (clinicError || !clinicData) {
+        console.error('Erro ao buscar dados da clínica:', clinicError);
+        throw new Error('Falha ao buscar dados da clínica.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados da clínica (exceção):', error);
+      throw new Error(`Erro ao buscar dados da clínica: ${error.message}`);
     }
     
-    // Buscar dados do proprietário da clínica diretamente da tabela profiles
-    const { data: ownerProfile, error: ownerError } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name, email, cpf, phone')
-      .eq('id', clinicData.owner_id)
-      .single();
-      
-    console.log('Dados do proprietário:', JSON.stringify(ownerProfile, null, 2));
+    // Declarar a variável ownerProfile em um escopo mais amplo
+    let ownerProfile: any;
     
-    if (ownerError || !ownerProfile) {
-      console.error('Erro ao buscar dados do proprietário:', ownerError);
-      throw new Error('Perfil do proprietário da clínica não encontrado.');
+    // Buscar dados do proprietário da clínica diretamente da tabela profiles
+    console.log('Buscando dados do proprietário com ID:', clinicData.owner_id);
+    try {
+      const { data, error: ownerError } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name, email, cpf, phone')
+        .eq('id', clinicData.owner_id)
+        .single();
+      
+      // Atribuir o valor à variável ownerProfile declarada no escopo mais amplo
+      ownerProfile = data;
+        
+      console.log('Resposta da consulta do proprietário:');
+      console.log('- Dados:', ownerProfile ? 'Dados encontrados' : 'Nenhum dado');
+      console.log('- Erro:', ownerError ? JSON.stringify(ownerError) : 'Nenhum erro');
+      
+      if (ownerProfile) {
+        console.log('Dados do proprietário:', JSON.stringify(ownerProfile, null, 2));
+      }
+      
+      if (ownerError || !ownerProfile) {
+        console.error('Erro ao buscar dados do proprietário:', ownerError);
+        throw new Error('Perfil do proprietário da clínica não encontrado.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados do proprietário (exceção):', error);
+      throw new Error(`Erro ao buscar dados do proprietário: ${error.message}`);
     }
     
     // Validações mais detalhadas dos dados do proprietário
+    console.log('Validando dados do proprietário e da clínica...');
+    
     const validationErrors = [];
     
+    if (!ownerProfile.full_name) {
+      console.error('Nome do proprietário não encontrado');
+      validationErrors.push('Nome do proprietário não encontrado. Atualize o perfil.');
+    }
+    
+    if (!ownerProfile.email) {
+      console.error('Email do proprietário não encontrado');
+      validationErrors.push('Email do proprietário não encontrado. Atualize o perfil.');
+    }
+    
+    if (!ownerProfile.cpf) {
+      console.error('CPF do proprietário não encontrado');
+      validationErrors.push('CPF do proprietário não encontrado. Atualize o perfil.');
+    }
+    
+    // Validação do CNPJ da clínica
+    if (!clinicData.cnpj) {
+      console.error('CNPJ da clínica não encontrado');
+      validationErrors.push('CNPJ da clínica não encontrado. Atualize as configurações da clínica.');
+    }
+    
+    if (validationErrors.length > 0) {
+      const errorMessage = validationErrors.join(' ');
+      console.error('Erros de validação encontrados:', errorMessage);
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Validação concluída com sucesso.');
+    console.log('Dados validados:');
     if (!ownerProfile.full_name || ownerProfile.full_name.trim() === '') {
       validationErrors.push('O nome do proprietário da clínica não está preenchido');
     }
@@ -108,6 +194,14 @@ serve(async (req) => {
       console.error('Validação falhou:', validationErrors);
       throw new Error(`Dados incompletos: ${validationErrors.join(', ')}. Por favor, complete seu perfil e os dados da clínica.`);
     }
+
+    console.log('Validação concluída com sucesso.');
+    console.log('Dados validados:');
+    console.log('- Nome:', ownerProfile.full_name);
+    console.log('- Email:', ownerProfile.email);
+    console.log('- CPF:', ownerProfile.cpf ? '(presente)' : '(ausente)');
+    console.log('- CNPJ:', clinicData.cnpj ? '(presente)' : '(ausente)');
+    console.log('- Telefone:', ownerProfile.phone || '(não informado)');
 
     // Verifica se já existe uma assinatura para esta clínica
     const { data: existingSubscription, error: subscriptionError } = await supabaseAdmin
@@ -240,29 +334,58 @@ serve(async (req) => {
     console.log(`Próximo vencimento definido para: ${formattedNextDueDate} (ciclo: ${cycle})`)
 
     // Cria a assinatura no Asaas
+    console.log('--- Preparando criação da assinatura no Asaas ---');
     const subscriptionData: AsaasSubscriptionRequest = {
       customer: asaasCustomerId,
       billingType: billingType || 'CREDIT_CARD',
-      value: parseFloat(value),
+      value: parseFloat(value.toString()),
       nextDueDate: formattedNextDueDate,
       cycle: cycle || 'MONTHLY',
       description: `Assinatura ${planName} - ${clinicData.name || 'Clínica'}`,
       externalReference: clinicId
     };
+    
+    console.log('Dados da assinatura a serem enviados:', JSON.stringify(subscriptionData, null, 2));
+    console.log('URL da API Asaas:', `${asaasBaseUrl}/subscriptions`);
+    console.log('Método:', 'POST');
+    console.log('Headers:', JSON.stringify({
+      'Content-Type': 'application/json',
+      'access_token': asaasApiKey ? 'PRESENTE (não exibido por segurança)' : 'AUSENTE'
+    }, null, 2));
 
-    const subscriptionResponse = await fetch(`${asaasBaseUrl}/subscriptions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'access_token': asaasApiKey
-      },
-      body: JSON.stringify(subscriptionData)
-    });
+    // Declarar a variável no escopo mais amplo, antes do try
+    let subscriptionResponse;
 
-    if (!subscriptionResponse.ok) {
-      const errorData = await subscriptionResponse.json();
-      console.error('Erro ao criar assinatura no Asaas:', errorData);
-      throw new Error(`Falha ao criar assinatura no Asaas: ${errorData.errors?.[0]?.description || 'Erro desconhecido'}`);
+    try {
+      console.log('Enviando requisição para criar assinatura...');
+      subscriptionResponse = await fetch(`${asaasBaseUrl}/subscriptions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': asaasApiKey
+        },
+        body: JSON.stringify(subscriptionData)
+      });
+      
+      console.log('Resposta recebida do Asaas:');
+      console.log('- Status:', subscriptionResponse.status);
+      console.log('- Status Text:', subscriptionResponse.statusText);
+      console.log('- OK:', subscriptionResponse.ok);
+
+      if (!subscriptionResponse.ok) {
+        const errorData = await subscriptionResponse.json();
+        console.error('Erro ao criar assinatura no Asaas:', JSON.stringify(errorData, null, 2));
+        console.error('Detalhes do erro:');
+        if (errorData.errors && errorData.errors.length > 0) {
+          errorData.errors.forEach((err: any, index: number) => {
+            console.error(`Erro ${index + 1}:`, JSON.stringify(err, null, 2));
+          });
+        }
+        throw new Error(`Falha ao criar assinatura no Asaas: ${errorData.errors?.[0]?.description || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error('Exceção ao criar assinatura no Asaas:', error);
+      throw new Error(`Erro ao criar assinatura: ${error.message}`);
     }
 
     const subscriptionResult = await subscriptionResponse.json();
@@ -307,7 +430,13 @@ serve(async (req) => {
     }
 
     console.log('--- Assinatura salva com sucesso! ---');
-    return new Response(JSON.stringify(savedSubscription), {
+    console.log('Payment Link:', subscriptionResult.paymentLink);
+    
+    // Garantir que o paymentLink esteja explicitamente na resposta
+    return new Response(JSON.stringify({
+      ...savedSubscription,
+      paymentLink: subscriptionResult.paymentLink // Incluir explicitamente o link de pagamento
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 201,
     });
