@@ -42,6 +42,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     '/configuracao', 
     '/configuracao/clinica', 
     '/configuracao/profissional',
+    // As rotas reais usadas no App.tsx
     '/configuracao-clinica',
     '/configuracao-profissional'
   ];
@@ -53,6 +54,22 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   
   console.log('Caminho atual:', location.pathname, 'Acesso permitido:', isAllowedPath);
   
+  // Restrição de acesso baseada no tipo de perfil
+  if (profile) {
+    // Apenas proprietários podem acessar a configuração da clínica
+    if (location.pathname === '/configuracao-clinica' && profile.role !== 'clinic_owner') {
+      console.log('Acesso negado: apenas proprietários podem acessar a configuração da clínica');
+      return <Navigate to="/dashboard" replace />;
+    }
+    
+    // Apenas profissionais podem acessar a configuração do profissional
+    if (location.pathname === '/configuracao-profissional' && profile.role !== 'professional') {
+      console.log('Acesso negado: apenas profissionais podem acessar a configuração do profissional');
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+  
+  // Verificação de acesso baseada no status do plano
   if (!canAccess && !isAllowedPath) {
     return <Navigate to="/dashboard" replace />;
   }

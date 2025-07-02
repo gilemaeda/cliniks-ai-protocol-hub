@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,7 @@ import AdminCoupons from '@/components/admin/AdminCoupons';
 import AdminPromptIA from '@/components/admin/AdminPromptIA';
 import AdminChatProtocolPrompt from '@/components/admin/AdminChatProtocolPrompt';
 import AdminSettings from '@/components/admin/AdminSettings';
-import AdminAssinaturas from '@/components/admin/AdminAssinaturas';
+import SubscriptionsManager from '@/components/admin/SubscriptionsManager';
 
 const AdminPanel = () => {
   const { toast } = useToast();
@@ -198,7 +197,7 @@ const AdminPanel = () => {
               </TabsContent>
 
               <TabsContent value="assinaturas" className="mt-6">
-                <AdminAssinaturas />
+                <SubscriptionsManager />
               </TabsContent>
 
               <TabsContent value="settings" className="mt-6">

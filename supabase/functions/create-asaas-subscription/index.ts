@@ -134,28 +134,54 @@ serve(async (req) => {
 
     // Escolher entre CNPJ da clínica ou CPF do proprietário para o cliente Asaas
     let cpfCnpj = '';
+    let documentType = '';
+    
+    // Log detalhado dos dados antes da validação
+    console.log('CNPJ da clínica (bruto):', clinicData.cnpj);
+    console.log('CPF do proprietário (bruto):', ownerProfile.cpf);
+    
     if (clinicData.cnpj && clinicData.cnpj.trim() !== '') {
       // Remover caracteres não numéricos do CNPJ
       cpfCnpj = clinicData.cnpj.replace(/[^0-9]/g, '');
+      documentType = 'CNPJ';
       
       // Validar tamanho do CNPJ (deve ter 14 dígitos)
+      console.log(`CNPJ após limpeza: ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
+      
       if (cpfCnpj.length !== 14) {
-        console.error(`CNPJ inválido (${cpfCnpj.length} dígitos): ${cpfCnpj}`);
-        throw new Error(`CNPJ inválido: deve ter 14 dígitos numéricos. O valor atual tem ${cpfCnpj.length} dígitos.`);
+        console.warn(`CNPJ inválido: ${cpfCnpj} (${cpfCnpj.length} dígitos). Tentando usar CPF do proprietário como fallback.`);
+        
+        // Tentar usar CPF do proprietário como fallback
+        if (ownerProfile.cpf && ownerProfile.cpf.trim() !== '') {
+          cpfCnpj = ownerProfile.cpf.replace(/[^0-9]/g, '');
+          documentType = 'CPF';
+          
+          // Validar tamanho do CPF (deve ter 11 dígitos)
+          console.log(`CPF após limpeza: ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
+          
+          if (cpfCnpj.length !== 11) {
+            throw new Error(`CPF inválido: ${cpfCnpj.length} dígitos (deve ter 11 dígitos). Por favor, corrija o CPF do proprietário na página de configuração.`);
+          }
+        } else {
+          throw new Error('Não foi possível criar o cliente: CNPJ da clínica inválido e CPF do proprietário não informado. Por favor, preencha corretamente os dados na página de configuração da clínica.');
+        }
       }
     } else if (ownerProfile.cpf && ownerProfile.cpf.trim() !== '') {
-      // Remover caracteres não numéricos do CPF
+      // Usar CPF do proprietário
       cpfCnpj = ownerProfile.cpf.replace(/[^0-9]/g, '');
+      documentType = 'CPF';
       
       // Validar tamanho do CPF (deve ter 11 dígitos)
+      console.log(`CPF após limpeza: ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
+      
       if (cpfCnpj.length !== 11) {
-        console.error(`CPF inválido (${cpfCnpj.length} dígitos): ${cpfCnpj}`);
-        throw new Error(`CPF inválido: deve ter 11 dígitos numéricos. O valor atual tem ${cpfCnpj.length} dígitos.`);
+        throw new Error(`CPF inválido: ${cpfCnpj.length} dígitos (deve ter 11 dígitos). Por favor, corrija o CPF do proprietário na página de configuração.`);
       }
     } else {
-      throw new Error('CPF/CNPJ não encontrado para a clínica ou proprietário. Por favor, complete os dados cadastrais.');
+      throw new Error('Não foi possível criar o cliente: CNPJ da clínica e CPF do proprietário não informados. Por favor, preencha os dados na página de configuração da clínica.');
     }
-    console.log(`Documento selecionado para o cliente Asaas: ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
+    
+    console.log(`Documento selecionado para o cliente Asaas: ${documentType} ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
 
     // Cria ou recupera o cliente no Asaas
     let asaasCustomerId = existingSubscription?.asaas_customer_id;

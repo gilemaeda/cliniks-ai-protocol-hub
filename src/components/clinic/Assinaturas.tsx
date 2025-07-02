@@ -416,7 +416,9 @@ const ProfessionalSubscriptionView = ({ subscription }: { subscription: Subscrip
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="font-medium">Plano</span>
-                <span className="text-gray-700 dark:text-gray-300">{subscription.plan_name}</span>
+                <div className="text-lg font-semibold flex items-center">
+                  {subscription.plan_name} <Badge variant="success" className="ml-2">Ativo</Badge>
+                </div>
               </div>
               <Separator />
               <div className="flex justify-between items-center">
