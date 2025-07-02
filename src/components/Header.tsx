@@ -6,10 +6,12 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useClinic } from '@/hooks/useClinic';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { clinic, loading, planStatusLabel } = useClinic();
   const navigate = useNavigate();
   const { toast } = useToast();
 

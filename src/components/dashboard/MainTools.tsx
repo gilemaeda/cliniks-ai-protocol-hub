@@ -3,125 +3,150 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Sparkles, Package, Users, Settings, Camera, User, Brain, FileText, MessageCircle, History, CreditCard } from 'lucide-react';
+import { Clock, Sparkles, Package, Users, Camera, User, Brain, FileText, MessageCircle, History, CreditCard, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect, useState, ElementType } from 'react';
+import { useClinic } from '@/contexts/ClinicContext';
+import PlanStatusBanner from './PlanStatusBanner';
+
+interface Tool {
+  id: string;
+  title: string;
+  description: string;
+  icon: ElementType;
+  color: string;
+  badge?: string;
+  badgeColor?: string;
+  onClick: () => void;
+}
 
 const MainTools = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const { planStatus, trialDaysRemaining, clinic } = useClinic();
+  const [tools, setTools] = useState<Tool[]>([]);
 
-  const tools = [
-    {
-      id: 'assinaturas',
-      title: 'Assinaturas',
-      description: 'Gerencie sua assinatura e planos de pagamento',
-      icon: CreditCard,
-      color: 'bg-emerald-500',
-      badge: 'Novo',
-      badgeColor: 'bg-emerald-500',
-      onClick: () => navigate('/assinaturas')
-    },
-    {
-      id: 'avaliacao-facial',
-      title: 'Avaliação Facial',
-      description: 'Análise completa da pele facial com IA',
-      icon: User,
-      color: 'bg-blue-500',
-      badge: 'IA',
-      badgeColor: 'bg-blue-500',
-      onClick: () => navigate('/avaliacao-ia?type=facial')
-    },
-    {
-      id: 'avaliacao-corporal',
-      title: 'Avaliação Corporal',
-      description: 'Avaliação corporal inteligente e personalizada',
-      icon: Brain,
-      color: 'bg-green-500',
-      badge: 'IA',
-      badgeColor: 'bg-green-500',
-      onClick: () => navigate('/avaliacao-ia?type=corporal')
-    },
-    {
-      id: 'avaliacao-capilar',
-      title: 'Avaliação Capilar',
-      description: 'Análise tricológica com inteligência artificial',
-      icon: Sparkles,
-      color: 'bg-purple-500',
-      badge: 'IA',
-      badgeColor: 'bg-purple-500',
-      onClick: () => navigate('/avaliacao-ia?type=capilar')
-    },
-    {
-      id: 'chat-ia',
-      title: 'Chat IA Especializada',
-      description: 'Converse com a IA para tirar dúvidas sobre estética',
-      icon: MessageCircle,
-      color: 'bg-pink-500',
-      badge: 'IA',
-      badgeColor: 'bg-pink-500',
-      onClick: () => navigate('/chat-ia')
-    },
-    {
-      id: 'historico-avaliacoes',
-      title: 'Histórico de Avaliações',
-      description: 'Visualize e gerencie todas as avaliações realizadas',
-      icon: History,
-      color: 'bg-indigo-500',
-      badge: 'Essencial',
-      badgeColor: 'bg-blue-500',
-      onClick: () => navigate('/avaliacao-ia?tab=historico')
-    },
-    {
-      id: 'protocolos',
-      title: 'Protocolos Personalizados',
-      description: 'Crie protocolos únicos com IA especializada',
-      icon: Clock,
-      color: 'bg-orange-500',
-      badge: 'Premium',
-      badgeColor: 'bg-gradient-to-r from-purple-500 to-pink-500',
-      onClick: () => navigate('/protocolos-personalizados')
-    },
-    {
-      id: 'recursos',
-      title: 'Central de Recursos',
-      description: 'Gerencie equipamentos, produtos cosméticos e injetáveis',
-      icon: Package,
-      color: 'bg-teal-500',
-      badge: 'Essencial',
-      badgeColor: 'bg-blue-500',
-      onClick: () => navigate('/central-recursos')
-    },
-    {
-      id: 'pacientes',
-      title: 'Pacientes',
-      description: 'Gerencie o cadastro e informações dos seus pacientes',
-      icon: Users,
-      color: 'bg-blue-500',
-      onClick: () => navigate('/patients')
-    },
-    {
-      id: 'anamneses',
-      title: 'Anamneses',
-      description: 'Formulários específicos para cada tipo de avaliação',
-      icon: FileText,
-      color: 'bg-green-500',
-      badge: 'Essencial',
-      badgeColor: 'bg-orange-500',
-      onClick: () => navigate('/anamneses')
-    },
-    {
-      id: 'galeria',
-      title: 'Galeria de Fotos',
-      description: 'Organize e compare fotos de evolução dos tratamentos',
-      icon: Camera,
-      color: 'bg-orange-500',
-      badge: 'Novo',
-      badgeColor: 'bg-purple-500',
-      onClick: () => navigate('/galeria-fotos')
+  useEffect(() => {
+    const baseTools = [
+      {
+        id: 'avaliacao-facial',
+        title: 'Avaliação Facial',
+        description: 'Análise completa da pele facial com IA',
+        icon: User,
+        color: 'bg-blue-500',
+        badge: 'IA',
+        badgeColor: 'bg-blue-500',
+        onClick: () => navigate('/avaliacao-ia?type=facial')
+      },
+      {
+        id: 'avaliacao-corporal',
+        title: 'Avaliação Corporal',
+        description: 'Avaliação corporal inteligente e personalizada',
+        icon: Brain,
+        color: 'bg-green-500',
+        badge: 'IA',
+        badgeColor: 'bg-green-500',
+        onClick: () => navigate('/avaliacao-ia?type=corporal')
+      },
+      {
+        id: 'avaliacao-capilar',
+        title: 'Avaliação Capilar',
+        description: 'Análise tricológica com inteligência artificial',
+        icon: Sparkles,
+        color: 'bg-purple-500',
+        badge: 'IA',
+        badgeColor: 'bg-purple-500',
+        onClick: () => navigate('/avaliacao-ia?type=capilar')
+      },
+      {
+        id: 'chat-ia',
+        title: 'Chat IA Especializada',
+        description: 'Converse com a IA para tirar dúvidas sobre estética',
+        icon: MessageCircle,
+        color: 'bg-pink-500',
+        badge: 'IA',
+        badgeColor: 'bg-pink-500',
+        onClick: () => navigate('/chat-ia')
+      },
+      {
+        id: 'historico-avaliacoes',
+        title: 'Histórico de Avaliações',
+        description: 'Visualize e gerencie todas as avaliações realizadas',
+        icon: History,
+        color: 'bg-indigo-500',
+        badge: 'Essencial',
+        badgeColor: 'bg-blue-500',
+        onClick: () => navigate('/avaliacao-ia?tab=historico')
+      },
+      {
+        id: 'protocolos',
+        title: 'Protocolos Personalizados',
+        description: 'Crie protocolos únicos com IA especializada',
+        icon: Clock,
+        color: 'bg-orange-500',
+        badge: 'Premium',
+        badgeColor: 'bg-gradient-to-r from-purple-500 to-pink-500',
+        onClick: () => navigate('/protocolos-personalizados')
+      },
+      {
+        id: 'recursos',
+        title: 'Central de Recursos',
+        description: 'Gerencie equipamentos, produtos cosméticos e injetáveis',
+        icon: Package,
+        color: 'bg-teal-500',
+        badge: 'Essencial',
+        badgeColor: 'bg-blue-500',
+        onClick: () => navigate('/central-recursos')
+      },
+      {
+        id: 'pacientes',
+        title: 'Pacientes',
+        description: 'Gerencie o cadastro e informações dos seus pacientes',
+        icon: Users,
+        color: 'bg-blue-500',
+        onClick: () => navigate('/patients')
+      },
+      {
+        id: 'anamneses',
+        title: 'Anamneses',
+        description: 'Formulários específicos para cada tipo de avaliação',
+        icon: FileText,
+        color: 'bg-green-500',
+        badge: 'Essencial',
+        badgeColor: 'bg-orange-500',
+        onClick: () => navigate('/anamneses')
+      },
+      {
+        id: 'galeria',
+        title: 'Galeria de Fotos',
+        description: 'Organize e compare fotos de evolução dos tratamentos',
+        icon: Camera,
+        color: 'bg-orange-500',
+        badge: 'Novo',
+        badgeColor: 'bg-purple-500',
+        onClick: () => navigate('/galeria-fotos')
+      }
+    ];
+
+    if (profile) {
+      if (profile.role === 'clinic_owner') {
+        setTools(baseTools); // O card de assinatura foi removido conforme solicitado
+      } else if (profile.role === 'professional') {
+        setTools(baseTools); // O card de status do plano foi removido para profissionais
+      } else {
+        setTools(baseTools);
+      }
+    } else {
+      setTools(baseTools);
     }
-  ];
+  }, [profile, navigate]);
 
   return (
     <div className="space-y-8">
       <div className="bg-white dark:bg-zinc-900 rounded-xl shadow p-6">
+        {profile?.role === 'clinic_owner' && (
+          <PlanStatusBanner status={planStatus} daysRemaining={trialDaysRemaining} />
+        )}
         <h2 className="text-2xl font-bold mb-2">Ferramentas Principais</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
           Acesse as principais funcionalidades da plataforma

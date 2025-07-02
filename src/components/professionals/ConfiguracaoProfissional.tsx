@@ -8,11 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useClinic } from '@/contexts/ClinicContext'; // Importar o hook da clínica
+import { Badge } from '@/components/ui/badge'; // Importar o Badge
 import { ArrowLeft, Save, User, FileText, IdCard, Phone, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ConfiguracaoProfissional = () => {
   const { user, profile } = useAuth();
+  const { planStatusLabel, trialDaysRemaining } = useClinic(); // Usar o hook da clínica
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -53,6 +56,7 @@ const ConfiguracaoProfissional = () => {
   const [professional, setProfessional] = useState<Professional | null>(null);
 
   const [formData, setFormData] = useState({
+    email: '',
     specialty: '',
     birth_date: '',
     equipment_list: [] as string[],
@@ -97,6 +101,7 @@ const ConfiguracaoProfissional = () => {
           if (professionalData) {
             setProfessional(professionalData);
             setFormData({
+              email: user.email || '',
               specialty: professionalData.specialty || '',
               birth_date: professionalData.birth_date || '',
               equipment_list: professionalData.equipment_list || [],
@@ -106,6 +111,9 @@ const ConfiguracaoProfissional = () => {
               council_number: professionalData.council_number || '',
               phone: professionalData.phone || ''
             });
+          } else {
+            // Se não houver dados de profissional, ainda preenche o e-mail do usuário logado
+            setFormData(prev => ({ ...prev, email: user.email || '' }));
           }
         }
       }
@@ -169,7 +177,7 @@ const ConfiguracaoProfissional = () => {
 
   const handleSave = async () => {
     if (!clinic?.clinic_id || !user) return;
-    
+
     if (!validateForm()) {
       toast({
         title: "Dados incompletos",
@@ -182,9 +190,26 @@ const ConfiguracaoProfissional = () => {
     setLoading(true);
 
     try {
-      if (professional) {
-        // Atualizar profissional existente
-        const { error } = await supabase
+      // Etapa 1: Atualizar o e-mail de autenticação, se tiver mudado
+      if (formData.email && formData.email !== user.email) {
+        const { error: updateUserError } = await supabase.auth.updateUser({
+          email: formData.email,
+        });
+
+        if (updateUserError) {
+          throw new Error(`Não foi possível atualizar o e-mail. ${updateUserError.message}`);
+        }
+
+        toast({
+          title: 'Confirmação necessária',
+          description: `Um e-mail de confirmação foi enviado para ${formData.email}. Por favor, verifique sua caixa de entrada para concluir a alteração.`,
+          duration: 9000,
+        });
+      }
+
+      // Etapa 2: Atualizar os dados do perfil profissional na tabela 'professionals'
+      if (professional?.id) {
+        const { error: professionalError } = await supabase
           .from('professionals')
           .update({
             specialty: formData.specialty,
@@ -198,52 +223,21 @@ const ConfiguracaoProfissional = () => {
           })
           .eq('id', professional.id);
 
-        if (error) throw error;
-        
-        // Atualizar também o perfil se necessário
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            cpf: formData.cpf,
-            phone: formData.phone
-          })
-          .eq('id', user.id);
-
-        if (profileError) throw profileError;
-        toast({ title: "Dados atualizados!", description: "Seus dados foram salvos com sucesso." });
-      } else {
-        // Criar novo perfil profissional
-        const { error } = await supabase
-          .from('professionals')
-          .insert({
-            user_id: user.id,
-            clinic_id: clinic.clinic_id,
-            specialty: formData.specialty,
-            birth_date: formData.birth_date,
-            equipment_list: formData.equipment_list,
-            preferences: formData.preferences,
-            cpf: formData.cpf,
-            formation: formData.formation,
-            council_number: formData.council_number,
-            phone: formData.phone
-          });
-
-        if (error) throw error;
+        if (professionalError) throw professionalError;
       }
 
       toast({
-        title: "Configurações salvas!",
-        description: "Suas configurações profissionais foram atualizadas com sucesso.",
-        variant: "default"
+        title: "Configurações salvas",
+        description: "Suas configurações foram salvas com sucesso."
       });
 
-      // Recarregar dados
-      await fetchProfessionalData();
+      await fetchProfessionalData(); // Recarrega os dados para refletir as mudanças
+
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações",
+        description: error instanceof Error ? error.message : "Não foi possível salvar as configurações",
         variant: "destructive"
       });
     } finally {
@@ -304,9 +298,20 @@ const ConfiguracaoProfissional = () => {
                   {clinic.logo_url && (
                     <img src={clinic.logo_url && clinic.logo_url.startsWith('http') ? clinic.logo_url : `https://rpfrmclsraiidjlfeonj.supabase.co/storage/v1/object/public/clinic-assets/${clinic.logo_url}`} alt={`Logo da ${clinic.clinic_name}`} className="h-16 w-16 rounded-full object-cover" />
                   )}
-                  <div>
-                    <p className="text-xl font-semibold text-gray-900 dark:text-white">{clinic.clinic_name}</p>
+                  <div className="flex flex-col">
+                    <h3 className="text-lg font-semibold">{clinic.clinic_name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Você está vinculado a esta clínica.</p>
+                    <div className="mt-2">
+                      <Badge 
+                        variant={planStatusLabel === 'Ativo' ? 'success' : planStatusLabel === 'Em Teste' ? 'warning' : 'destructive'}
+                        title={`Status do Plano: ${planStatusLabel}`}
+                      >
+                        {planStatusLabel}
+                        {planStatusLabel === 'Em Teste' && trialDaysRemaining !== null && (
+                          <span className="ml-1 font-normal">({trialDaysRemaining} dias restantes)</span>
+                        )}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -385,6 +390,17 @@ const ConfiguracaoProfissional = () => {
                 <p className="text-xs text-gray-400 mt-1">A senha deve ter pelo menos 6 caracteres.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="cpf">CPF</Label>
                   <div className="flex items-center space-x-2">

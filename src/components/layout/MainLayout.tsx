@@ -7,19 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useClinic } from '@/contexts/ClinicContext';
 
-const PLAN_COLORS: Record<string, string> = {
-  bronze: 'bg-yellow-700 text-white',
-  prata: 'bg-gray-400 text-white',
-  ouro: 'bg-yellow-400 text-white',
-};
-
 type MainLayoutProps = {
   children?: React.ReactNode;
 };
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { user, profile, signOut } = useAuth();
-  const { clinic, loading } = useClinic();
+  const { clinic, loading, planStatusLabel, trialDaysRemaining } = useClinic();
   const location = useLocation();
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
@@ -61,13 +55,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   >
                     {clinic?.name || 'Cliniks IA'}
                   </button>
-                  {clinic?.plan && (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold shadow ml-1 ${PLAN_COLORS[clinic.plan] || 'bg-gray-200 text-gray-800'}`}
-                      title={`Plano ${clinic.plan.charAt(0).toUpperCase() + clinic.plan.slice(1)}`}
-                    >
-                      <span className="capitalize">{clinic.plan}</span>
-                    </span>
-                  )}
+                  <Badge 
+                    variant={planStatusLabel === 'Ativo' ? 'success' : planStatusLabel === 'Em Teste' ? 'warning' : 'destructive'}
+                    className="ml-2"
+                    title={`Status do Plano: ${planStatusLabel}${planStatusLabel === 'Em Teste' && trialDaysRemaining ? ` (${trialDaysRemaining} dias restantes)` : ''}`}
+                  >
+                    {planStatusLabel}
+                  </Badge>
                 </div>
                 <p className="text-xs text-white/80 font-medium">Plataforma Cliniks</p>
               </div>

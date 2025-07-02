@@ -6,11 +6,13 @@ import { Building2, Users, ArrowLeft } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfiguracaoClinica from '@/components/clinic/ConfiguracaoClinica';
 import GerenciarProfissionais from '@/components/clinic/GerenciarProfissionais';
+import { useAuth } from '@/hooks/useAuth';
 
 const ConfiguracaoClinicaPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('configuracao');
+  const { profile } = useAuth();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -38,6 +40,9 @@ const ConfiguracaoClinicaPage = () => {
                 </p>
               </div>
             </div>
+            {profile?.role === 'clinic_owner' && (
+              <Button onClick={() => navigate('/assinaturas')}>Ver Assinatura</Button>
+            )}
           </div>
         </div>
 

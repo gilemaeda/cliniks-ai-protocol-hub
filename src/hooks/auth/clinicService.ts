@@ -146,53 +146,62 @@ export const clinicService = {
     try {
       console.log('clinicService - Creating clinic for owner:', fullName);
       const defaultName = `Clínica de ${fullName}`;
-      
-      // Criar a clínica e obter o ID
+
+      // Define a data de término do período de teste (7 dias a partir de agora)
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+
+      // Criar a clínica com o período de teste e obter o ID
       const { data: clinicData, error } = await supabase
         .from('clinics')
         .insert({
           owner_id: userId,
           name: defaultName,
-          plan: 'bronze'
+          trial_ends_at: trialEndsAt.toISOString(), // Adiciona o campo do período de teste
+          // O campo 'plan' foi removido, pois o sistema de planos foi simplificado
         })
         .select('id')
         .single();
 
       if (error) {
         console.error('clinicService - Error creating clinic:', error);
+        // Informar sobre possível coluna faltando
+        if (error.message.includes('column "trial_ends_at" of relation "clinics" does not exist')) {
+          console.error('--> Lembrete: A coluna `trial_ends_at` precisa ser adicionada à tabela `clinics` no Supabase.');
+        }
         return null;
-      } 
-      
-      console.log('clinicService - Clinic created successfully:', clinicData);
+      }
+
+      console.log('clinicService - Clinic created successfully with trial period:', clinicData);
       const clinicId = clinicData.id;
-      
+
       // Atualizar o perfil do usuário com o clinic_id
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ clinic_id: clinicId })
         .eq('id', userId);
-        
+
       if (profileError) {
         console.error('clinicService - Error updating profile with clinic_id:', profileError);
       } else {
         console.log('clinicService - Profile updated with clinic_id:', clinicId);
       }
-      
+
       // Criar um registro na tabela professionals para o proprietário
       const { error: professionalError } = await supabase
         .from('professionals')
         .insert({
           user_id: userId,
           clinic_id: clinicId,
-          is_active: true
+          is_active: true,
         });
-        
+
       if (professionalError) {
         console.error('clinicService - Error creating professional record:', professionalError);
       } else {
         console.log('clinicService - Professional record created for clinic owner');
       }
-      
+
       return clinicId;
     } catch (error) {
       console.error('clinicService - Error in createClinic:', error);

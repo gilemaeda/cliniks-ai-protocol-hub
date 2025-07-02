@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinic } from '@/contexts/ClinicContext';
 import { Upload, Building, Palette, Bell, Save, Loader2 } from 'lucide-react';
+import ConfiguracaoPerfil from '@/components/profile/ConfiguracaoPerfil';
 
 const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
@@ -41,8 +42,17 @@ const ConfiguracaoClinica = () => {
   const [clinic, setClinic] = useState(clinicData);
 
   useEffect(() => {
-    setClinic(clinicData);
-  }, [clinicData]);
+    if (clinicData) {
+      // Garante que o estado local seja atualizado com os dados do contexto
+      // e preenche o e-mail de contato se estiver vazio, usando o e-mail do proprietário.
+      setClinic(prevClinic => ({
+        ...clinicData,
+        // Mantém o valor local se já foi alterado pelo usuário, senão usa o do contexto
+        ...prevClinic,
+        email: clinicData.email || user?.email || '',
+      }));
+    }
+  }, [clinicData, user]);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -189,6 +199,11 @@ const ConfiguracaoClinica = () => {
       const clinicPayload = {
         name: clinic.name,
         cnpj: clinic.cnpj,
+        phone: clinic.phone,
+        email: clinic.email,
+        address: clinic.address,
+        city: clinic.city,
+        state: clinic.state,
         plan: clinic.plan,
         employee_count: clinic.employee_count,
         brand_colors: {
@@ -258,63 +273,73 @@ const ConfiguracaoClinica = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="clinic_name">Nome da Clínica</Label>
+                <Label htmlFor="name">Nome da Clínica</Label>
                 <Input
-                  id="clinic_name"
+                  id="name"
                   value={clinic?.name || ''}
-                  onChange={(e) => setClinic({...clinic, name: e.target.value})}
+                  onChange={(e) => setClinic({ ...clinic, name: e.target.value })}
                   placeholder="Nome da sua clínica"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clinic_cnpj">CNPJ</Label>
+                <Label htmlFor="email">E-mail de Contato</Label>
                 <Input
-                  id="clinic_cnpj"
-                  value={clinic?.cnpj || ''}
-                  onChange={(e) => setClinic({...clinic, cnpj: e.target.value})}
-                  placeholder="00.000.000/0000-00"
+                  id="email"
+                  type="email"
+                  value={clinic?.email || ''}
+                  onChange={(e) => setClinic({ ...clinic, email: e.target.value })}
+                  placeholder="contato@suaclinica.com"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clinic_phone">Telefone</Label>
+                <Label htmlFor="address">Endereço</Label>
                 <Input
-                  id="clinic_phone"
+                  id="address"
+                  value={clinic?.address || ''}
+                  onChange={(e) => setClinic({ ...clinic, address: e.target.value })}
+                  placeholder="Ex: Rua das Flores, 123, Bairro, Cidade - Estado, CEP"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <Input
+                  id="cnpj"
+                  value={clinic?.cnpj || ''}
+                  onChange={(e) => setClinic({ ...clinic, cnpj: e.target.value })}
+                  placeholder="00.000.000/0001-00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
                   value={clinic?.phone || ''}
-                  onChange={(e) => setClinic({...clinic, phone: e.target.value})}
+                  onChange={(e) => setClinic({ ...clinic, phone: e.target.value })}
                   placeholder="(00) 00000-0000"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="n8n_webhook_url">URL do Webhook (n8n)</Label>
-              <Input
-                id="n8n_webhook_url"
-                value={clinic?.n8n_webhook_url || ''}
-                onChange={(e) => setClinic({...clinic, n8n_webhook_url: e.target.value})}
-                placeholder="https://n8n.seudominio.com/webhook/..."
-              />
-              <p className="text-xs text-gray-500">URL para integração com automações n8n (opcional)</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="employee_count">Número de Funcionários</Label>
-              <Input
-                id="employee_count"
-                type="number"
-                value={clinic?.employee_count || 1}
-                onChange={(e) => setClinic({ ...clinic, employee_count: parseInt(e.target.value) || 1 })}
-                min="1"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="employee_count">Número de Funcionários</Label>
+                <Input
+                  id="employee_count"
+                  type="number"
+                  value={clinic?.employee_count || 1}
+                  onChange={(e) => setClinic({ ...clinic, employee_count: parseInt(e.target.value) || 1 })}
+                  min="1"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="plan">Plano</Label>
               <Select value={clinic?.plan || ''} onValueChange={(value) => setClinic({ ...clinic, plan: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o plano" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="bronze">Bronze</SelectItem>
@@ -555,20 +580,22 @@ const ConfiguracaoClinica = () => {
                 checked={clinic?.notification_settings?.sms_notifications || false}
                 onCheckedChange={(checked) => setClinic({
                   ...clinic,
-                  notification_settings: { ...clinic?.notification_settings, sms_notifications: checked }
+                  notification_settings: { ...clinic?.notification_settings, sms_notifications: checked },
                 })}
               />
             </div>
           </CardContent>
-
         </Card>
       </div>
+
+      {/* Seção Perfil do Proprietário */}
+      <ConfiguracaoPerfil />
 
       {/* Botão Salvar */}
       <div className="flex justify-end">
         <Button onClick={handleSubmit} disabled={localLoading || isUploading !== null} size="lg">
           <Save className="h-4 w-4 mr-2" />
-          {localLoading ? 'Salvando...' : 'Salvar Configurações'}
+          {localLoading ? 'Salvando...' : 'Salvar Configurações da Clínica'}
         </Button>
       </div>
     </div>

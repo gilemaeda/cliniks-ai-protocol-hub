@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinic } from '@/contexts/ClinicContext';
-import { ArrowLeft, CreditCard, Calendar, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, Clock, CheckCircle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -32,14 +32,72 @@ const planos = [
   { nome: 'Essencial', valor: 19.90, ciclo: 'MONTHLY', descricao: 'Plano completo com todas as funcionalidades' }
 ];
 
+// Funções auxiliares (movidas para fora para serem reutilizáveis)
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'ACTIVE':
+    case 'CONFIRMED':
+      return <Badge variant="success">Ativa</Badge>;
+    case 'PENDING':
+      return <Badge variant="warning">Pendente</Badge>;
+    case 'OVERDUE':
+      return <Badge variant="destructive">Vencida</Badge>;
+    case 'INACTIVE':
+      return <Badge variant="secondary">Inativa</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+};
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('pt-BR');
+};
+
+const getBillingTypeText = (type: string) => {
+  switch (type) {
+    case 'CREDIT_CARD':
+      return 'Cartão de Crédito';
+    case 'BOLETO':
+      return 'Boleto';
+    case 'PIX':
+      return 'PIX';
+    default:
+      return type;
+  }
+};
+
+const getCycleText = (cycle: string) => {
+  switch (cycle) {
+    case 'WEEKLY':
+      return 'Semanal';
+    case 'BIWEEKLY':
+      return 'Quinzenal';
+    case 'MONTHLY':
+      return 'Mensal';
+    case 'QUARTERLY':
+      return 'Trimestral';
+    case 'SEMIANNUALLY':
+      return 'Semestral';
+    case 'YEARLY':
+      return 'Anual';
+    default:
+      return cycle;
+  }
+};
+
 const Assinaturas = () => {
-  console.log('Assinaturas: Componente sendo renderizado');
-  const { user } = useAuth();
+  const { user, profile } = useAuth(); // Adicionado profile
   const { clinic } = useClinic();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  console.log('Assinaturas: Estado inicial -', { user, clinic, clinic_id: clinic?.clinic_id || clinic?.id });
   
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,12 +107,10 @@ const Assinaturas = () => {
 
   const fetchSubscriptionData = useCallback(async () => {
     if (!clinic?.clinic_id) {
-      console.log('fetchSubscriptionData: Nenhum clinic_id disponível');
       setLoading(false);
       return;
     }
     
-    console.log('fetchSubscriptionData: Iniciando busca para clinic_id:', clinic.clinic_id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -63,17 +119,7 @@ const Assinaturas = () => {
         .eq('clinic_id', clinic.clinic_id)
         .maybeSingle();
 
-      console.log('fetchSubscriptionData: Resposta do Supabase:', { data, error });
-
       if (error) throw error;
-      
-      // Mesmo que não tenha erro, verificamos se temos dados
-      if (data === null) {
-        console.log('fetchSubscriptionData: Nenhuma assinatura encontrada');
-      } else {
-        console.log('fetchSubscriptionData: Assinatura encontrada:', data);
-      }
-      
       setSubscription(data);
     } catch (error) {
       console.error('Erro ao buscar dados da assinatura:', error);
@@ -83,271 +129,126 @@ const Assinaturas = () => {
         variant: "destructive"
       });
     } finally {
-      console.log('fetchSubscriptionData: Finalizando loading');
       setLoading(false);
     }
   }, [clinic?.clinic_id, toast]);
 
   useEffect(() => {
-    console.log('Assinaturas: useEffect para fetchSubscriptionData', { clinic });
     if (clinic?.clinic_id) {
-      console.log('Assinaturas: Chamando fetchSubscriptionData com clinic_id:', clinic.clinic_id);
       fetchSubscriptionData();
     } else {
-      console.log('Assinaturas: clinic_id não disponível, não é possível buscar dados');
-      setLoading(false); // Evita loading infinito se não houver clinic_id
+      setLoading(false);
     }
   }, [clinic, fetchSubscriptionData]);
 
   const handleCreateSubscription = async () => {
-    console.log('Assinaturas: handleCreateSubscription iniciado');
-    
-    // Usar clinic.id em vez de clinic.clinic_id, já que o objeto clinic vem diretamente da tabela clinics
     const clinicId = clinic?.id;
-    console.log('Assinaturas: Verificando ID da clínica:', { clinic, clinicId });
-    
     if (!clinicId) {
-      console.error('Assinaturas: ID da clínica não disponível');
-      toast({
-        title: "Erro ao criar assinatura",
-        description: "Não foi possível identificar a clínica. Por favor, tente novamente mais tarde.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: 'ID da clínica não encontrado.', variant: 'destructive' });
       return;
     }
-    
+
     setCreatingSubscription(true);
+    const plano = planos.find(p => p.nome === selectedPlan);
+    if (!plano) {
+      toast({ title: 'Erro', description: 'Plano selecionado não é válido.', variant: 'destructive' });
+      setCreatingSubscription(false);
+      return;
+    }
+
     try {
-      console.log('Assinaturas: Plano selecionado:', selectedPlan);
-      const planoSelecionado = planos.find(p => p.nome === selectedPlan);
-      
-      if (!planoSelecionado) {
-        console.error('Assinaturas: Plano não encontrado');
-        throw new Error('Plano não encontrado');
-      }
-      
-      console.log('Assinaturas: Enviando requisição para Edge Function com dados:', {
-        clinicId: clinicId,
-        planName: planoSelecionado.nome,
-        billingType: selectedBillingType,
-        value: planoSelecionado.valor,
-        cycle: planoSelecionado.ciclo
-      });
-      
       const { data, error } = await supabase.functions.invoke('create-asaas-subscription', {
         body: {
-          clinicId: clinicId,
-          planName: planoSelecionado.nome,
-          billingType: selectedBillingType,
-          value: planoSelecionado.valor,
-          cycle: planoSelecionado.ciclo
-        }
+          clinic_id: clinicId,
+          plan_name: plano.nome,
+          billing_type: selectedBillingType,
+          value: plano.valor,
+          cycle: plano.ciclo,
+        },
       });
-
-      console.log('Assinaturas: Resposta da Edge Function:', { data, error });
 
       if (error) {
-        console.error('Assinaturas: Erro retornado pela Edge Function:', error);
-        // Tentar extrair mais detalhes do erro
-        if (error.message && error.message.includes('500')) {
-          console.error('Assinaturas: Erro 500 detectado, pode ser problema com variáveis de ambiente ou configuração da Edge Function');
-          // Tentar extrair o corpo da resposta de erro se disponível
-          try {
-            // @ts-expect-error - Acessando propriedades não documentadas do objeto de erro
-            if (error.context && error.context.response) {
-              const responseText = await error.context.response.text();
-              console.error('Assinaturas: Detalhes do erro 500:', responseText);
-            }
-          } catch (extractError) {
-            console.error('Assinaturas: Não foi possível extrair detalhes adicionais do erro:', extractError);
-          }
+        if (error.context?.status === 500) {
+          const responseText = await error.context.json();
+          toast({ title: 'Erro de Configuração', description: responseText.error || 'Ocorreu um erro interno no servidor.', variant: 'destructive', duration: 9000 });
+        } else {
+          toast({ title: 'Erro ao Criar Assinatura', description: error.message, variant: 'destructive' });
         }
-        throw error;
+        return;
       }
-      
-      toast({
-        title: "Assinatura criada!",
-        description: "Sua assinatura foi criada com sucesso",
-        variant: "default"
-      });
-      
-      setSubscription(data);
+
+      toast({ title: 'Sucesso!', description: 'Assinatura criada. Redirecionando para pagamento...' });
+      if (data.paymentLink) {
+        window.open(data.paymentLink, '_blank');
+      }
+      await fetchSubscriptionData();
+
     } catch (error) {
-      console.error('Assinaturas: Erro ao criar assinatura:', error);
-      console.log('Assinaturas: Tipo do erro:', typeof error);
-      console.log('Assinaturas: Mensagem do erro:', error.message);
-      console.log('Assinaturas: Stack trace:', error.stack);
-      
-      // Mensagem personalizada baseada no tipo de erro
-      let errorMessage = "Ocorreu um erro ao tentar criar a assinatura. Por favor, tente novamente mais tarde.";
-      
-      if (error.message && error.message.includes('500')) {
-        errorMessage = "Erro no servidor: A configuração da integração com o serviço de pagamento está incompleta. Por favor, entre em contato com o suporte técnico.";
-      } else if (error.message && error.message.includes('409')) {
-        errorMessage = "Esta clínica já possui uma assinatura ativa.";
-      }
-      
       toast({
-        title: "Erro ao criar assinatura",
-        description: errorMessage,
-        variant: "destructive"
+        title: 'Erro Inesperado',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro inesperado.',
+        variant: 'destructive',
       });
     } finally {
-      console.log('Assinaturas: Finalizando criação de assinatura');
       setCreatingSubscription(false);
-      setLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge className="bg-green-500">Ativa</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pendente</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500">Atrasada</Badge>;
-      case 'canceled':
-        return <Badge className="bg-gray-500">Cancelada</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR').format(date);
-  };
-
-  const getBillingTypeText = (type: string) => {
-    switch (type) {
-      case 'CREDIT_CARD':
-        return 'Cartão de Crédito';
-      case 'BOLETO':
-        return 'Boleto';
-      case 'PIX':
-        return 'PIX';
-      default:
-        return type;
-    }
-  };
-
-  const getCycleText = (cycle: string) => {
-    switch (cycle) {
-      case 'MONTHLY':
-        return 'Mensal';
-      case 'YEARLY':
-        return 'Anual';
-      case 'WEEKLY':
-        return 'Semanal';
-      case 'BIWEEKLY':
-        return 'Quinzenal';
-      case 'QUARTERLY':
-        return 'Trimestral';
-      case 'SEMIANNUALLY':
-        return 'Semestral';
-      default:
-        return cycle;
-    }
-  };
-
-  // Adicionando log antes do return para debug
-  console.log('Assinaturas: Antes do return -', { loading, subscription, clinic });
-  
-  // Forçar timeout para garantir que não fique em loading infinito
-  useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
-        console.log('Assinaturas: Timeout de segurança ativado');
-        setLoading(false);
-      }, 5000); // 5 segundos de timeout
-      
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
-  
-  return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mr-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-        <h1 className="text-2xl font-bold">Gerenciamento de Assinatura</h1>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">Carregando...</p>
       </div>
+    );
+  }
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <span className="ml-2">Carregando dados da assinatura...</span>
-        </div>
-      ) : subscription ? (
+  // Renderização condicional baseada na role
+  if (profile?.role === 'professional') {
+    return <ProfessionalSubscriptionView subscription={subscription} />;
+  }
+
+  // View padrão para clinic_owner
+  return (
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <Button onClick={() => navigate(-1)} variant="outline" className="mb-4">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar
+      </Button>
+
+      {subscription ? (
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Assinatura {subscription.plan_name}</CardTitle>
-              {getStatusBadge(subscription.status)}
-            </div>
+            <CardTitle>Detalhes da Assinatura</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Detalhes da Assinatura</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2 text-gray-500" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Forma de pagamento: {getBillingTypeText(subscription.billing_type)}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Próximo vencimento: {formatDate(subscription.next_due_date)}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5 mr-2 text-gray-500" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Ciclo: {getCycleText(subscription.cycle)}
-                    </span>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Plano Atual</h3>
+                <p className="text-2xl font-bold">{subscription.plan_name}</p>
+                <p>{getStatusBadge(subscription.status)}</p>
               </div>
-              
-              <div>
-                <h3 className="text-lg font-medium mb-4">Informações de Pagamento</h3>
-                <div className="space-y-3">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {formatCurrency(subscription.value)}
-                    <span className="text-sm font-normal text-gray-500 ml-1">
-                      /{subscription.cycle.toLowerCase() === 'monthly' ? 'mês' : 'ano'}
-                    </span>
-                  </div>
-                  
-                  <div className="mt-4">
-                    {subscription.asaas_payment_link && (
-                      <Button 
-                        onClick={() => window.open(subscription.asaas_payment_link, '_blank')}
-                        className="w-full"
-                      >
-                        Acessar Portal de Pagamento
-                      </Button>
-                    )}
-                  </div>
+              <div className="space-y-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 className="text-lg font-medium">Pagamento</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Valor</span>
+                  <span className="font-semibold">{formatCurrency(subscription.value)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Ciclo</span>
+                  <span className="font-semibold">{getCycleText(subscription.cycle)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Próximo Vencimento</span>
+                  <span className="font-semibold">{formatDate(subscription.next_due_date)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Forma de Pagamento</span>
+                  <span className="font-semibold">{getBillingTypeText(subscription.billing_type)}</span>
                 </div>
               </div>
             </div>
-            
             <Separator />
-            
             <div>
               <h3 className="text-lg font-medium mb-4">Histórico</h3>
               <div className="text-sm text-gray-500">
@@ -379,7 +280,6 @@ const Assinaturas = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
               <div>
                 <label className="block text-sm font-medium mb-1">Forma de Pagamento</label>
                 <Select value={selectedBillingType} onValueChange={setSelectedBillingType}>
@@ -393,25 +293,12 @@ const Assinaturas = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
               <div className="pt-4">
-                <Button 
-                  onClick={handleCreateSubscription} 
-                  disabled={creatingSubscription}
-                  className="w-full"
-                >
-                  {creatingSubscription ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    'Criar Assinatura'
-                  )}
+                <Button onClick={handleCreateSubscription} disabled={creatingSubscription} className="w-full">
+                  {creatingSubscription ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>) : ('Criar Assinatura')}
                 </Button>
               </div>
             </div>
-            
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <div className="flex items-start">
                 <InfoIcon className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
@@ -428,6 +315,59 @@ const Assinaturas = () => {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+};
+
+// View para profissionais
+const ProfessionalSubscriptionView = ({ subscription }: { subscription: Subscription | null }) => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <Button onClick={() => navigate(-1)} variant="outline" className="mb-4">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar
+      </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <ShieldCheck className="h-6 w-6 text-blue-500" />
+            <span>Status do Plano da Clínica</span>
+          </CardTitle>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Informações sobre a assinatura da clínica à qual você pertence.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {subscription ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Status</span>
+                {getStatusBadge(subscription.status)}
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Plano</span>
+                <span className="text-gray-700 dark:text-gray-300">{subscription.plan_name}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Próximo Vencimento</span>
+                <span className="text-gray-700 dark:text-gray-300">{formatDate(subscription.next_due_date)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 mx-auto text-gray-400" />
+              <h3 className="mt-4 text-lg font-medium">Nenhuma Assinatura Ativa</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                A clínica não possui uma assinatura ativa no momento.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

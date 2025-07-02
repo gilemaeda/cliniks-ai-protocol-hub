@@ -57,20 +57,38 @@ serve(async (req) => {
     }
 
     // Busca os dados da clínica
+    // Buscar dados da clínica
     const { data: clinicData, error: clinicError } = await supabaseAdmin
       .from('clinics')
-      .select('*, profiles(full_name, email, cpf, phone)')
+      .select('id, name, cnpj, owner_id')
       .eq('id', clinicId)
       .single();
+      
+    console.log('Dados da clínica:', JSON.stringify(clinicData, null, 2));
 
     if (clinicError || !clinicData) {
       console.error('Erro ao buscar dados da clínica:', clinicError);
       throw new Error('Falha ao buscar dados da clínica.');
     }
-
-    const ownerProfile = clinicData.profiles;
-    if (!ownerProfile) {
+    
+    // Buscar dados do proprietário da clínica diretamente da tabela profiles
+    const { data: ownerProfile, error: ownerError } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email, cpf, phone')
+      .eq('id', clinicData.owner_id)
+      .single();
+      
+    console.log('Dados do proprietário:', JSON.stringify(ownerProfile, null, 2));
+    
+    if (ownerError || !ownerProfile) {
+      console.error('Erro ao buscar dados do proprietário:', ownerError);
       throw new Error('Perfil do proprietário da clínica não encontrado.');
+    }
+    
+    // Verificar se o nome do proprietário está preenchido
+    if (!ownerProfile.full_name) {
+      console.error('Nome do proprietário não preenchido');
+      throw new Error('O nome do proprietário da clínica não está preenchido. Por favor, complete seu perfil.');
     }
 
     // Verifica se já existe uma assinatura para esta clínica
@@ -96,18 +114,26 @@ serve(async (req) => {
       });
     }
 
+    // Determina o CPF/CNPJ a ser usado para a criação do cliente no Asaas, priorizando o da clínica
+    const cpfCnpj = clinicData.cnpj || ownerProfile.cpf;
+    if (!cpfCnpj) {
+      throw new Error('CPF/CNPJ não encontrado. Por favor, complete os dados cadastrais da clínica ou do proprietário.');
+    }
+    console.log(`Documento selecionado para o cliente Asaas: ${cpfCnpj}`);
+
     // Cria ou recupera o cliente no Asaas
     let asaasCustomerId = existingSubscription?.asaas_customer_id;
-
     if (!asaasCustomerId) {
       // Cria um novo cliente no Asaas
       const customerData: AsaasCustomerRequest = {
         name: ownerProfile.full_name,
         email: ownerProfile.email,
         phone: ownerProfile.phone || '',
-        cpfCnpj: ownerProfile.cpf || '',
-        notificationDisabled: false
+        cpfCnpj: cpfCnpj, // Usa o documento selecionado
+        notificationDisabled: true
       };
+      
+      console.log('--- Dados para criar cliente no Asaas ---', JSON.stringify(customerData, null, 2));
 
       const customerResponse = await fetch(`${asaasBaseUrl}/customers`, {
         method: 'POST',
@@ -120,8 +146,10 @@ serve(async (req) => {
 
       if (!customerResponse.ok) {
         const errorData = await customerResponse.json();
-        console.error('Erro ao criar cliente no Asaas:', errorData);
-        throw new Error(`Falha ao criar cliente no Asaas: ${errorData.errors?.[0]?.description || 'Erro desconhecido'}`);
+        const errorMessage = errorData.errors?.[0]?.description || 'Erro desconhecido ao criar cliente no Asaas.';
+        console.error(`Erro ao criar cliente no Asaas: ${JSON.stringify(errorData, null, 2)}`);
+        // Lança o erro específico para ser pego pelo catch principal e enviado ao front-end
+        throw new Error(errorMessage);
       }
 
       const customerResult = await customerResponse.json();
@@ -129,10 +157,17 @@ serve(async (req) => {
       console.log('--- Cliente criado no Asaas ---', asaasCustomerId);
     }
 
-    // Prepara a data do próximo vencimento (padrão: hoje + 7 dias)
+    // Prepara a data do próximo vencimento (30 dias para ciclo mensal)
     const nextDueDate = new Date();
-    nextDueDate.setDate(nextDueDate.getDate() + 7);
+    if (cycle === 'MONTHLY') {
+      // Para ciclo mensal, próximo vencimento em 30 dias
+      nextDueDate.setDate(nextDueDate.getDate() + 30);
+    } else {
+      // Para outros ciclos, mantém o padrão de 7 dias
+      nextDueDate.setDate(nextDueDate.getDate() + 7);
+    }
     const formattedNextDueDate = nextDueDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    console.log(`Próximo vencimento definido para: ${formattedNextDueDate} (ciclo: ${cycle})`)
 
     // Cria a assinatura no Asaas
     const subscriptionData: AsaasSubscriptionRequest = {
@@ -141,7 +176,7 @@ serve(async (req) => {
       value: parseFloat(value),
       nextDueDate: formattedNextDueDate,
       cycle: cycle || 'MONTHLY',
-      description: `Assinatura ${planName} - ${clinicData.clinic_name}`,
+      description: `Assinatura ${planName} - ${clinicData.name || 'Clínica'}`,
       externalReference: clinicId
     };
 
@@ -212,7 +247,8 @@ serve(async (req) => {
     console.error('Error Object:', error);
     console.error('Error Message:', error.message);
     console.error('Error Stack:', error.stack);
-    return new Response(JSON.stringify({ error: 'Ocorreu um erro inesperado no servidor.', details: error.message }), {
+    // Retorna a mensagem de erro específica para o frontend, que espera um objeto com a chave 'error'
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
