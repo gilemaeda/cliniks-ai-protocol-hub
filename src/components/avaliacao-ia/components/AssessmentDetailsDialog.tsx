@@ -91,36 +91,56 @@ const AssessmentDetailsDialog = ({ assessment, isOpen, onClose }: AssessmentDeta
 
   const handleSendEmail = async () => {
     try {
+      // Mostrar toast imediatamente para feedback visual
+      toast({
+        title: "Gerando PDF",
+        description: "Preparando arquivo para envio...",
+      });
+      
       setIsLoading(prev => ({ ...prev, email: true }));
       
-      // Verificar se o paciente tem email
-      if (!assessment.professionals?.profiles?.email) {
-        toast({
-          title: "Atenção",
-          description: "Não foi possível encontrar um email para envio. Por favor, compartilhe o PDF manualmente.",
-          variant: "destructive"
-        });
-        return;
-      }
+      // Preparar dados da avaliação para o PDF
+      const assessmentData = {
+        id: assessment.id,
+        patient_name: assessment.patient_name,
+        patient_age: assessment.patient_age,
+        assessment_type: getAssessmentTypeLabel(assessment.assessment_type),
+        treatment_objective: assessment.treatment_objective,
+        main_complaint: assessment.main_complaint,
+        observations: assessment.observations,
+        ai_protocol: assessment.ai_protocol,
+        created_at: assessment.created_at,
+        professional: assessment.professionals ? {
+          profiles: assessment.professionals.profiles
+        } : null
+      };
+
+      // Gerar o PDF
+      const pdf = await generateAssessmentPDF(assessmentData);
       
-      // Aqui você pode implementar a lógica para enviar o email
-      // Por enquanto, vamos apenas mostrar um toast de sucesso simulado
+      // Nome do arquivo formatado
+      const fileName = `avaliacao-${assessment.patient_name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      setTimeout(() => {
-        toast({
-          title: "Enviado",
-          description: "Email enviado com sucesso!",
-        });
-        setIsLoading(prev => ({ ...prev, email: false }));
-      }, 1500);
+      // Salvar o PDF
+      pdf.save(fileName);
       
+      // Obter o email do profissional, se disponível
+      const recipientEmail = assessment.professionals?.profiles?.email || '';
+      const emailInfo = recipientEmail ? ` para ${recipientEmail}` : '';
+      
+      toast({
+        title: "PDF Gerado com Sucesso",
+        description: `O arquivo "${fileName}" foi salvo no seu computador. Abra seu cliente de email e anexe este arquivo para enviá-lo${emailInfo}.`,
+        duration: 8000, // Mostrar por mais tempo para o usuário ler
+      });
     } catch (error) {
-      console.error('Erro ao enviar email:', error);
+      console.error('Erro ao gerar PDF:', error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao enviar o email. Tente novamente.",
+        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
       setIsLoading(prev => ({ ...prev, email: false }));
     }
   };

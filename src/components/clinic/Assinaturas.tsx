@@ -33,10 +33,13 @@ const planos = [
 ];
 
 const Assinaturas = () => {
+  console.log('Assinaturas: Componente sendo renderizado');
   const { user } = useAuth();
   const { clinic } = useClinic();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  console.log('Assinaturas: Estado inicial -', { user, clinic, clinic_id: clinic?.clinic_id || clinic?.id });
   
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,15 +47,14 @@ const Assinaturas = () => {
   const [selectedPlan, setSelectedPlan] = useState('Essencial');
   const [selectedBillingType, setSelectedBillingType] = useState('CREDIT_CARD');
 
-  useEffect(() => {
-    if (clinic?.clinic_id) {
-      fetchSubscriptionData();
-    }
-  }, [clinic, fetchSubscriptionData]);
-
   const fetchSubscriptionData = useCallback(async () => {
-    if (!clinic?.clinic_id) return;
+    if (!clinic?.clinic_id) {
+      console.log('fetchSubscriptionData: Nenhum clinic_id disponível');
+      setLoading(false);
+      return;
+    }
     
+    console.log('fetchSubscriptionData: Iniciando busca para clinic_id:', clinic.clinic_id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -61,7 +63,16 @@ const Assinaturas = () => {
         .eq('clinic_id', clinic.clinic_id)
         .maybeSingle();
 
+      console.log('fetchSubscriptionData: Resposta do Supabase:', { data, error });
+
       if (error) throw error;
+      
+      // Mesmo que não tenha erro, verificamos se temos dados
+      if (data === null) {
+        console.log('fetchSubscriptionData: Nenhuma assinatura encontrada');
+      } else {
+        console.log('fetchSubscriptionData: Assinatura encontrada:', data);
+      }
       
       setSubscription(data);
     } catch (error) {
@@ -72,24 +83,60 @@ const Assinaturas = () => {
         variant: "destructive"
       });
     } finally {
+      console.log('fetchSubscriptionData: Finalizando loading');
       setLoading(false);
     }
   }, [clinic?.clinic_id, toast]);
 
+  useEffect(() => {
+    console.log('Assinaturas: useEffect para fetchSubscriptionData', { clinic });
+    if (clinic?.clinic_id) {
+      console.log('Assinaturas: Chamando fetchSubscriptionData com clinic_id:', clinic.clinic_id);
+      fetchSubscriptionData();
+    } else {
+      console.log('Assinaturas: clinic_id não disponível, não é possível buscar dados');
+      setLoading(false); // Evita loading infinito se não houver clinic_id
+    }
+  }, [clinic, fetchSubscriptionData]);
+
   const handleCreateSubscription = async () => {
-    if (!clinic?.clinic_id) return;
+    console.log('Assinaturas: handleCreateSubscription iniciado');
+    
+    // Usar clinic.id em vez de clinic.clinic_id, já que o objeto clinic vem diretamente da tabela clinics
+    const clinicId = clinic?.id;
+    console.log('Assinaturas: Verificando ID da clínica:', { clinic, clinicId });
+    
+    if (!clinicId) {
+      console.error('Assinaturas: ID da clínica não disponível');
+      toast({
+        title: "Erro ao criar assinatura",
+        description: "Não foi possível identificar a clínica. Por favor, tente novamente mais tarde.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setCreatingSubscription(true);
     try {
+      console.log('Assinaturas: Plano selecionado:', selectedPlan);
       const planoSelecionado = planos.find(p => p.nome === selectedPlan);
       
       if (!planoSelecionado) {
+        console.error('Assinaturas: Plano não encontrado');
         throw new Error('Plano não encontrado');
       }
       
+      console.log('Assinaturas: Enviando requisição para Edge Function com dados:', {
+        clinicId: clinicId,
+        planName: planoSelecionado.nome,
+        billingType: selectedBillingType,
+        value: planoSelecionado.valor,
+        cycle: planoSelecionado.ciclo
+      });
+      
       const { data, error } = await supabase.functions.invoke('create-asaas-subscription', {
         body: {
-          clinicId: clinic.clinic_id,
+          clinicId: clinicId,
           planName: planoSelecionado.nome,
           billingType: selectedBillingType,
           value: planoSelecionado.valor,
@@ -97,7 +144,26 @@ const Assinaturas = () => {
         }
       });
 
-      if (error) throw error;
+      console.log('Assinaturas: Resposta da Edge Function:', { data, error });
+
+      if (error) {
+        console.error('Assinaturas: Erro retornado pela Edge Function:', error);
+        // Tentar extrair mais detalhes do erro
+        if (error.message && error.message.includes('500')) {
+          console.error('Assinaturas: Erro 500 detectado, pode ser problema com variáveis de ambiente ou configuração da Edge Function');
+          // Tentar extrair o corpo da resposta de erro se disponível
+          try {
+            // @ts-expect-error - Acessando propriedades não documentadas do objeto de erro
+            if (error.context && error.context.response) {
+              const responseText = await error.context.response.text();
+              console.error('Assinaturas: Detalhes do erro 500:', responseText);
+            }
+          } catch (extractError) {
+            console.error('Assinaturas: Não foi possível extrair detalhes adicionais do erro:', extractError);
+          }
+        }
+        throw error;
+      }
       
       toast({
         title: "Assinatura criada!",
@@ -106,16 +172,30 @@ const Assinaturas = () => {
       });
       
       setSubscription(data);
-    } catch (error: unknown) {
-      console.error('Erro ao criar assinatura:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro ao criar sua assinatura';
+    } catch (error) {
+      console.error('Assinaturas: Erro ao criar assinatura:', error);
+      console.log('Assinaturas: Tipo do erro:', typeof error);
+      console.log('Assinaturas: Mensagem do erro:', error.message);
+      console.log('Assinaturas: Stack trace:', error.stack);
+      
+      // Mensagem personalizada baseada no tipo de erro
+      let errorMessage = "Ocorreu um erro ao tentar criar a assinatura. Por favor, tente novamente mais tarde.";
+      
+      if (error.message && error.message.includes('500')) {
+        errorMessage = "Erro no servidor: A configuração da integração com o serviço de pagamento está incompleta. Por favor, entre em contato com o suporte técnico.";
+      } else if (error.message && error.message.includes('409')) {
+        errorMessage = "Esta clínica já possui uma assinatura ativa.";
+      }
+      
       toast({
         title: "Erro ao criar assinatura",
         description: errorMessage,
         variant: "destructive"
       });
     } finally {
+      console.log('Assinaturas: Finalizando criação de assinatura');
       setCreatingSubscription(false);
+      setLoading(false);
     }
   };
 
@@ -178,6 +258,21 @@ const Assinaturas = () => {
     }
   };
 
+  // Adicionando log antes do return para debug
+  console.log('Assinaturas: Antes do return -', { loading, subscription, clinic });
+  
+  // Forçar timeout para garantir que não fique em loading infinito
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.log('Assinaturas: Timeout de segurança ativado');
+        setLoading(false);
+      }, 5000); // 5 segundos de timeout
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+  
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center mb-6">
