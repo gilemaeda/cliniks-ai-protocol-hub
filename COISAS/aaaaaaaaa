@@ -472,7 +472,6 @@ const AssinaturasPage: React.FC = () => {
     
     
     
-    
     Nenhum resultado para Sidebar.tsx. Sem problemas. Isso significa que o menu de navegação está em outro lugar ou tem um nome diferente.
     
     Geralmente, em aplicações React, os links de navegação estão intimamente ligados à configuração de rotas (as URLs do seu site). O lugar mais provável para encontrar isso é no arquivo principal da aplicação, que geralmente é o App.tsx. É lá que o react-router-dom costuma ser configurado.
