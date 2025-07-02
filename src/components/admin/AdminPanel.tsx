@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Users, Building2, FileText, Settings, MessageSquare } from 'lucide-react';
+import { BarChart, Users, Building2, FileText, Settings, MessageSquare, CreditCard } from 'lucide-react';
 import AdminStats from './AdminStats';
 import AdminAssessments from './AdminAssessments';
 import AdminPromptIA from './AdminPromptIA';
 import AdminSettings from './AdminSettings';
+import AdminAssinaturas from './AdminAssinaturas';
 
 const AdminPanel = () => {
   return (
@@ -22,7 +23,7 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="stats" className="flex items-center space-x-2">
               <BarChart className="h-4 w-4" />
               <span>Estatísticas</span>
@@ -34,6 +35,10 @@ const AdminPanel = () => {
             <TabsTrigger value="prompt-ia" className="flex items-center space-x-2">
               <MessageSquare className="h-4 w-4" />
               <span>Prompt IA</span>
+            </TabsTrigger>
+            <TabsTrigger value="assinaturas" className="flex items-center space-x-2">
+              <CreditCard className="h-4 w-4" />
+              <span>Assinaturas</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center space-x-2">
               <Settings className="h-4 w-4" />
@@ -51,6 +56,10 @@ const AdminPanel = () => {
 
           <TabsContent value="prompt-ia">
             <AdminPromptIA />
+          </TabsContent>
+
+          <TabsContent value="assinaturas">
+            <AdminAssinaturas />
           </TabsContent>
 
           <TabsContent value="settings">

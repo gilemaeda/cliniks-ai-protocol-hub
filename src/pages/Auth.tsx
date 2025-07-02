@@ -18,6 +18,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [cpf, setCpf] = useState('');
   const [phone, setPhone] = useState('');
+  const [clinicName, setClinicName] = useState('');
+  const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -89,7 +91,10 @@ const Auth = () => {
         const { error } = await signUp(email, password, {
           full_name: fullName,
           cpf,
-          phone
+          phone,
+          clinic_name: clinicName,
+          cnpj,
+          role: 'clinic_owner'
         });
         
         if (error) {
@@ -166,7 +171,6 @@ const Auth = () => {
                       </label>
                       <Input
                         id="fullName"
-                        type="text"
                         placeholder="Seu nome completo"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
@@ -179,7 +183,6 @@ const Auth = () => {
                       </label>
                       <Input
                         id="cpf"
-                        type="text"
                         placeholder="000.000.000-00"
                         value={cpf}
                         onChange={(e) => setCpf(e.target.value)}
@@ -191,10 +194,36 @@ const Auth = () => {
                       </label>
                       <Input
                         id="phone"
-                        type="tel"
                         placeholder="(00) 00000-0000"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="clinicName" className="text-sm font-medium">
+                        Nome da Clínica <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="clinicName"
+                          placeholder="Nome da sua clínica"
+                          value={clinicName}
+                          onChange={(e) => setClinicName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="cnpj" className="text-sm font-medium">
+                        CNPJ <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        id="cnpj"
+                        placeholder="00.000.000/0000-00"
+                        value={cnpj}
+                        onChange={(e) => setCnpj(e.target.value)}
+                        required
                       />
                     </div>
                   </>

@@ -23,6 +23,7 @@ import CentralRecursos from '@/pages/CentralRecursos';
 import EstatisticasClinica from '@/pages/EstatisticasClinica';
 import ChatIA from '@/pages/ChatIA';
 import GaleriaFotosPage from '@/pages/GaleriaFotos';
+import AssinaturasPage from '@/pages/Assinaturas';
 import AnamnesisDataManager from '@/components/anamnesis/AnamnesisDataManager';
 import ProfessionalLogin from '@/components/auth/ProfessionalLogin';
 import AnamnesisDataForm from '@/components/anamnesis/AnamnesisDataForm';
@@ -191,6 +192,16 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <AnamnesisFormWrapper />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/assinaturas" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <AssinaturasPage />
                     </MainLayout>
                   </ProtectedRoute>
                 } 

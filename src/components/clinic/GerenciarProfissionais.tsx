@@ -18,6 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useClinic } from '@/hooks/useClinic';
 import { Plus, UserCheck, UserX, Edit, Trash2 } from 'lucide-react';
 
 type Professional = {
@@ -38,8 +39,9 @@ type Professional = {
 const GerenciarProfissionais = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { clinic, loading: clinicLoading, refetchClinic } = useClinic();
   const [professionals, setProfessionals] = useState<Professional[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
@@ -65,29 +67,16 @@ const GerenciarProfissionais = () => {
   });
 
   const fetchProfessionals = useCallback(async () => {
-    if (authLoading || !user) return;
+    if (authLoading || clinicLoading || !user || !clinic) {
+      console.log('DEBUG: Aguardando autenticação e dados da clínica...');
+      return;
+    }
 
     try {
       setLoading(true);
       
-      const { data: clinicData } = await supabase
-        .rpc('get_user_clinic_data', { user_uuid: user.id });
-
-      if (!clinicData || clinicData.length === 0) {
-        toast({ title: "Erro", description: "Dados da clínica não encontrados.", variant: "destructive" });
-        return;
-      }
-
-      const clinic = clinicData[0];
-
-      if (!clinic || !clinic.clinic_id) {
-        toast({ title: "Erro de Associação", description: "O usuário atual não está associado a nenhuma clínica.", variant: "destructive" });
-        setLoading(false);
-        return;
-      }
-
       // Usando uma consulta SQL direta em vez da função RPC que está com problemas
-      console.log('DEBUG: Executando consulta SQL direta para listar profissionais da clínica:', clinic.clinic_id);
+      console.log('DEBUG: Executando consulta SQL direta para listar profissionais da clínica:', clinic.id);
 
       // Verificar se existem profissionais na tabela, sem filtros
       const { data: allProfs, error: allProfsError } = await supabase
@@ -100,7 +89,7 @@ const GerenciarProfissionais = () => {
       const { data, error } = await supabase
         .from('professionals')
         .select('*')
-        .eq('clinic_id', clinic.clinic_id);
+        .eq('clinic_id', clinic.id);
 
       console.log('DEBUG: Profissionais filtrados por clinic_id:', data, error);
       console.log('DEBUG: UUID da clínica usado no filtro:', clinic.clinic_id);
@@ -234,33 +223,46 @@ const GerenciarProfissionais = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, authLoading, toast]);
+  }, [user, authLoading, clinic, clinicLoading, toast]);
 
   useEffect(() => {
-    fetchProfessionals();
-  }, [fetchProfessionals]);
+    if (!authLoading && !clinicLoading) {
+      fetchProfessionals();
+    }
+  }, [fetchProfessionals, authLoading, clinicLoading]);
 
   const handleAddProfessional = async () => {
-    if (!user) {
-        toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
-        return;
+    if (!user || !clinic) {
+      toast({ title: "Erro", description: "Usuário ou clínica não encontrados. Tente recarregar a página.", variant: "destructive" });
+      return;
     }
 
-    const { data: clinicData } = await supabase
-      .rpc('get_user_clinic_data', { user_uuid: user.id });
-    
-    if (!clinicData || clinicData.length === 0) {
-        toast({ title: "Erro", description: "Clínica não encontrada.", variant: "destructive" });
-        return;
+    // Validação básica dos campos
+    if (!newProfessional.email || !newProfessional.full_name || !newProfessional.password) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha o e-mail, nome completo e senha.',
+        variant: 'destructive',
+      });
+      return;
     }
-    const clinicId = clinicData[0].clinic_id;
 
     try {
+      const payload = {
+        professionalData: newProfessional,
+        clinicId: clinic.id,
+      };
+
+      console.log('DEBUG: Enviando payload para create-professional-user:', JSON.stringify(payload, null, 2));
+
       const { error } = await supabase.functions.invoke('create-professional-user', {
-        body: { professionalData: newProfessional, clinicId: clinicId },
+        body: payload,
       });
 
-      if (error) throw error;
+      if (error) {
+        // O erro já será um objeto com a estrutura da EdgeFunctionError
+        throw error;
+      }
 
       toast({
         title: 'Profissional Adicionado!',
@@ -270,21 +272,25 @@ const GerenciarProfissionais = () => {
       setShowAddModal(false);
       fetchProfessionals(); // Refresh list
       setNewProfessional({ email: '', full_name: '', cpf: '', formation: '', phone: '', password: '', specialty: '', council_number: '' });
-    } catch (error: unknown) {
-      // Tratamento específico para o erro de e-mail duplicado (409 Conflict)
-      if (error && typeof error === 'object' && 'context' in error && 
-          (error as { context: { status?: number } }).context?.status === 409) {
-        toast({
-          title: 'E-mail já cadastrado',
-          description: 'Este e-mail já está em uso. Por favor, utilize outro.',
-          variant: 'destructive',
-        });
-        return; // Interrompe a execução para não mostrar o toast genérico
-      }
 
-      // Tratamento genérico para outros erros
+    } catch (error: unknown) {
+      // Definir interface para o tipo de erro esperado da Edge Function
+      interface EdgeFunctionError {
+        message: string;
+        details?: string;
+      }
+      
+      const edgeFunctionError = error as EdgeFunctionError;
+      console.error('DEBUG: Erro recebido da Edge Function:', edgeFunctionError);
+
       let errorMessage = 'Ocorreu um erro desconhecido.';
-      if (error instanceof Error) {
+
+      // Tratamento de erro melhorado
+      if (edgeFunctionError?.details) {
+        errorMessage = edgeFunctionError.details;
+      } else if (typeof edgeFunctionError?.message === 'string') {
+        errorMessage = edgeFunctionError.message;
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
       

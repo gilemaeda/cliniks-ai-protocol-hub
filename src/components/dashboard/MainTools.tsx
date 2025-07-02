@@ -3,12 +3,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Sparkles, Package, Users, Settings, Camera, User, Brain, FileText, MessageCircle, History } from 'lucide-react';
+import { Clock, Sparkles, Package, Users, Settings, Camera, User, Brain, FileText, MessageCircle, History, CreditCard } from 'lucide-react';
 
 const MainTools = () => {
   const navigate = useNavigate();
 
   const tools = [
+    {
+      id: 'assinaturas',
+      title: 'Assinaturas',
+      description: 'Gerencie sua assinatura e planos de pagamento',
+      icon: CreditCard,
+      color: 'bg-emerald-500',
+      badge: 'Novo',
+      badgeColor: 'bg-emerald-500',
+      onClick: () => navigate('/assinaturas')
+    },
     {
       id: 'avaliacao-facial',
       title: 'Avaliação Facial',

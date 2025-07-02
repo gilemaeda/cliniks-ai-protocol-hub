@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,42 @@ const ConfiguracaoProfissional = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [clinic, setClinic] = useState<any>(null);
-  const [professional, setProfessional] = useState<any>(null);
+
+  // Definindo interface para o tipo Clinic
+  interface Clinic {
+    clinic_id: string;
+    clinic_name: string;
+    logo_url?: string;
+    banner_url?: string;
+    professional_id?: string;
+    // Propriedades específicas conhecidas
+    [key: string]: string | number | boolean | null | undefined; // Para propriedades adicionais tipadas
+  }
+
+  const [clinic, setClinic] = useState<Clinic | null>(null);
+
+  // Definindo interface para o tipo Professional
+  interface Professional {
+    id: string;
+    user_id: string;
+    clinic_id: string;
+    specialty?: string | null;
+    council_number?: string | null;
+    is_active: boolean;
+    created_at: string;
+    profile_photo_url?: string;
+    birth_date?: string | null;
+    equipment_list?: string[];
+    preferences?: Record<string, unknown>;
+    cpf?: string;
+    formation?: string;
+    phone?: string;
+    // Para outras propriedades que possam existir
+    [key: string]: string | number | boolean | null | undefined | string[] | Record<string, unknown>;
+  }
+
+  const [professional, setProfessional] = useState<Professional | null>(null);
+
   const [formData, setFormData] = useState({
     specialty: '',
     birth_date: '',
@@ -29,13 +63,15 @@ const ConfiguracaoProfissional = () => {
     phone: ''
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProfessionalData();
-    }
-  }, [user]);
+  const [errors, setErrors] = useState({
+    cpf: '',
+    phone: '',
+    formation: '',
+    specialty: ''
+  });
 
-  const fetchProfessionalData = async () => {
+  // Definindo fetchProfessionalData antes de usar no useEffect
+  const fetchProfessionalData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -81,10 +117,67 @@ const ConfiguracaoProfissional = () => {
         variant: "destructive"
       });
     }
+  }, [user, toast]);
+
+  // Usando fetchProfessionalData no useEffect depois de defini-la
+  useEffect(() => {
+    if (user) {
+      fetchProfessionalData();
+    }
+  }, [user, fetchProfessionalData]);
+
+  const validateForm = () => {
+    const newErrors = {
+      cpf: '',
+      phone: '',
+      formation: '',
+      specialty: ''
+    };
+    
+    let isValid = true;
+    
+    // Validar CPF (formato básico)
+    if (!formData.cpf) {
+      newErrors.cpf = 'CPF é obrigatório';
+      isValid = false;
+    } else if (!/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(formData.cpf.replace(/[^0-9]/g, ''))) {
+      newErrors.cpf = 'Formato de CPF inválido';
+      isValid = false;
+    }
+    
+    // Validar telefone (formato básico)
+    if (!formData.phone) {
+      newErrors.phone = 'Telefone é obrigatório';
+      isValid = false;
+    }
+    
+    // Validar formação
+    if (!formData.formation) {
+      newErrors.formation = 'Formação é obrigatória';
+      isValid = false;
+    }
+    
+    // Validar especialidade
+    if (!formData.specialty) {
+      newErrors.specialty = 'Especialidade é obrigatória';
+      isValid = false;
+    }
+    
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSave = async () => {
     if (!clinic?.clinic_id || !user) return;
+    
+    if (!validateForm()) {
+      toast({
+        title: "Dados incompletos",
+        description: "Por favor, preencha todos os campos obrigatórios corretamente.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
 
@@ -158,7 +251,7 @@ const ConfiguracaoProfissional = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -265,7 +358,7 @@ const ConfiguracaoProfissional = () => {
                       toast({ title: "Erro ao salvar foto", description: updateError.message, variant: "destructive" });
                     } else {
                       toast({ title: "Foto atualizada!", description: "Sua foto de perfil foi alterada." });
-                      setProfessional((prev: any) => ({ ...prev, profile_photo_url: photoUrl }));
+                      setProfessional((prev) => prev ? { ...prev, profile_photo_url: photoUrl } : null);
                     }
                   }}
                 />
@@ -301,7 +394,9 @@ const ConfiguracaoProfissional = () => {
                       value={formData.cpf}
                       onChange={(e) => handleInputChange('cpf', e.target.value)}
                       placeholder="000.000.000-00"
+                      className={errors.cpf ? 'border-red-500' : ''}
                     />
+                    {errors.cpf && <p className="text-xs text-red-500 mt-1">{errors.cpf}</p>}
                   </div>
                 </div>
 
@@ -324,7 +419,9 @@ const ConfiguracaoProfissional = () => {
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="(00) 00000-0000"
+                      className={errors.phone ? 'border-red-500' : ''}
                     />
+                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                   </div>
                 </div>
               </div>
@@ -348,7 +445,9 @@ const ConfiguracaoProfissional = () => {
                     value={formData.formation}
                     onChange={(e) => handleInputChange('formation', e.target.value)}
                     placeholder="Ex: Fisioterapia, Biomedicina"
+                    className={errors.formation ? 'border-red-500' : ''}
                   />
+                  {errors.formation && <p className="text-xs text-red-500 mt-1">{errors.formation}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -368,7 +467,9 @@ const ConfiguracaoProfissional = () => {
                     value={formData.specialty}
                     onChange={(e) => handleInputChange('specialty', e.target.value)}
                     placeholder="Ex: Dermatologista, Esteticista"
+                    className={errors.specialty ? 'border-red-500' : ''}
                   />
+                  {errors.specialty && <p className="text-xs text-red-500 mt-1">{errors.specialty}</p>}
                 </div>
               </div>
 

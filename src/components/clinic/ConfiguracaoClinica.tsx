@@ -54,6 +54,7 @@ const ConfiguracaoClinica = () => {
     address?: string;
     city?: string;
     state?: string;
+    cnpj?: string;
     logo_url?: string | null;
     banner_url?: string | null;
     brand_colors?: {
@@ -64,6 +65,7 @@ const ConfiguracaoClinica = () => {
     };
     notifications_enabled?: boolean;
     notification_email?: string;
+    n8n_webhook_url?: string;
   }
 
   const handleSave = async (data: ClinicUpdateData) => {
@@ -245,33 +247,56 @@ const ConfiguracaoClinica = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Informações Básicas */}
+        {/* Dados Básicos */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Building className="h-5 w-5" />
-              <span>Informações Básicas</span>
+              <span>Dados da Clínica</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Clínica</Label>
-              <Input
-                id="name"
-                value={clinic?.name || ''}
-                onChange={(e) => setClinic({ ...clinic, name: e.target.value })}
-                placeholder="Digite o nome da clínica"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="clinic_name">Nome da Clínica</Label>
+                <Input
+                  id="clinic_name"
+                  value={clinic?.name || ''}
+                  onChange={(e) => setClinic({...clinic, name: e.target.value})}
+                  placeholder="Nome da sua clínica"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clinic_cnpj">CNPJ</Label>
+                <Input
+                  id="clinic_cnpj"
+                  value={clinic?.cnpj || ''}
+                  onChange={(e) => setClinic({...clinic, cnpj: e.target.value})}
+                  placeholder="00.000.000/0000-00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clinic_phone">Telefone</Label>
+                <Input
+                  id="clinic_phone"
+                  value={clinic?.phone || ''}
+                  onChange={(e) => setClinic({...clinic, phone: e.target.value})}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="n8n_webhook_url">URL do Webhook (n8n)</Label>
               <Input
-                id="cnpj"
-                value={clinic?.cnpj || ''}
-                onChange={(e) => setClinic({ ...clinic, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
+                id="n8n_webhook_url"
+                value={clinic?.n8n_webhook_url || ''}
+                onChange={(e) => setClinic({...clinic, n8n_webhook_url: e.target.value})}
+                placeholder="https://n8n.seudominio.com/webhook/..."
               />
+              <p className="text-xs text-gray-500">URL para integração com automações n8n (opcional)</p>
             </div>
 
             <div className="space-y-2">

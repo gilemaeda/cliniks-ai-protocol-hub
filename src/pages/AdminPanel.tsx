@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Settings, BarChart3, FileText, CreditCard, Tag, Brain, User } from 'lucide-react';
+import { LogOut, Settings, BarChart3, FileText, CreditCard, Tag, Brain, User, CreditCard as CreditCardIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,7 @@ import AdminCoupons from '@/components/admin/AdminCoupons';
 import AdminPromptIA from '@/components/admin/AdminPromptIA';
 import AdminChatProtocolPrompt from '@/components/admin/AdminChatProtocolPrompt';
 import AdminSettings from '@/components/admin/AdminSettings';
+import AdminAssinaturas from '@/components/admin/AdminAssinaturas';
 
 const AdminPanel = () => {
   const { toast } = useToast();
@@ -29,17 +30,38 @@ const AdminPanel = () => {
     try {
       // Buscar informações do admin logado
       const adminAuth = localStorage.getItem('cliniks_admin_auth');
+      
+      // Verificar se o valor é 'authenticated' (caso especial)
+      if (adminAuth === 'authenticated') {
+        // Caso especial: usuário está autenticado, mas sem dados específicos
+        // Manter o nome padrão e não fazer nada
+        console.log('Admin autenticado sem dados específicos');
+        return;
+      }
+      
       if (adminAuth) {
-        const adminData = JSON.parse(adminAuth);
-        
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('full_name')
-          .eq('email', adminData.email)
-          .single();
+        try {
+          // Tentar fazer o parse do JSON
+          const adminData = JSON.parse(adminAuth);
+          
+          if (adminData && adminData.email) {
+            const { data, error } = await supabase
+              .from('admin_users')
+              .select('full_name')
+              .eq('email', adminData.email)
+              .single();
 
-        if (data && !error) {
-          setAdminName(data.full_name || 'Administrador Master');
+            if (data && !error) {
+              setAdminName(data.full_name || 'Administrador Master');
+            }
+          }
+        } catch (jsonError) {
+          console.error('Erro ao analisar dados do admin:', jsonError);
+          // Se o valor não for um JSON válido, mas o usuário estiver autenticado de alguma forma,
+          // não remover o item do localStorage para não deslogar o usuário
+          if (adminAuth !== 'authenticated' && typeof adminAuth !== 'string') {
+            localStorage.removeItem('cliniks_admin_auth');
+          }
         }
       }
     } catch (error) {
@@ -116,7 +138,7 @@ const AdminPanel = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-7 w-full mb-6">
+              <TabsList className="grid grid-cols-8 w-full mb-6">
                 <TabsTrigger value="stats" className="flex items-center space-x-2">
                   <BarChart3 className="h-4 w-4" />
                   <span className="hidden sm:inline">Estatísticas</span>
@@ -140,6 +162,10 @@ const AdminPanel = () => {
                 <TabsTrigger value="prompt-chat-protocolo" className="flex items-center space-x-2">
                   <Brain className="h-4 w-4 text-purple-500" /> {/* Ícone diferente para distinguir */} 
                   <span className="hidden sm:inline">Prompt Chat</span>
+                </TabsTrigger>
+                <TabsTrigger value="assinaturas" className="flex items-center space-x-2">
+                  <CreditCardIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Assinaturas</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
@@ -169,6 +195,10 @@ const AdminPanel = () => {
 
               <TabsContent value="prompt-chat-protocolo" className="mt-6">
                 <AdminChatProtocolPrompt />
+              </TabsContent>
+
+              <TabsContent value="assinaturas" className="mt-6">
+                <AdminAssinaturas />
               </TabsContent>
 
               <TabsContent value="settings" className="mt-6">
