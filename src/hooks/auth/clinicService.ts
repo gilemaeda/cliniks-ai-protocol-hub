@@ -81,6 +81,7 @@ export const clinicService = {
         .from('professionals')
         .select('*')
         .eq('user_id', userId)
+        .limit(1)
         .maybeSingle();
       
       if (professionalError) {
@@ -187,20 +188,34 @@ export const clinicService = {
         console.log('clinicService - Profile updated with clinic_id:', clinicId);
       }
 
-      // Criar um registro na tabela professionals para o proprietário
-      const { error: professionalError } = await supabase
+      // Verificar se já existe um registro de profissional para o proprietário
+      const { data: existingProfessional } = await supabase
         .from('professionals')
-        .insert({
-          user_id: userId,
-          clinic_id: clinicId,
-          is_active: true,
-        });
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
 
-      if (professionalError) {
-        console.error('clinicService - Error creating professional record:', professionalError);
+      // Criar um registro na tabela professionals para o proprietário apenas se não existir
+      if (!existingProfessional) {
+        const { error: professionalError } = await supabase
+          .from('professionals')
+          .insert({
+            user_id: userId,
+            clinic_id: clinicId,
+            is_active: true,
+          });
+
+        if (professionalError) {
+          console.error('clinicService - Error creating professional record:', professionalError);
+        } else {
+          console.log('clinicService - Professional record created for clinic owner');
+        }
       } else {
-        console.log('clinicService - Professional record created for clinic owner');
+        console.log('clinicService - Professional record already exists for clinic owner');
       }
+
+
 
       return clinicId;
     } catch (error) {

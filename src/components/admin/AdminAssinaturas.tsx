@@ -55,12 +55,17 @@ const AdminAssinaturas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  // Estados para controlar os diálogos
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddMonthsDialogOpen, setIsAddMonthsDialogOpen] = useState(false);
   const [isAddTrialDialogOpen, setIsAddTrialDialogOpen] = useState(false);
+  const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
   const [monthsToAdd, setMonthsToAdd] = useState(1);
   const [daysToAdd, setDaysToAdd] = useState(7);
   const [actionLoading, setActionLoading] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookLoading, setWebhookLoading] = useState(false);
 
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
@@ -96,9 +101,65 @@ const AdminAssinaturas = () => {
     }
   }, [toast]);
 
+  // Função para buscar a configuração do webhook do n8n
+  const fetchWebhookConfig = useCallback(async () => {
+    setWebhookLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'n8n_webhook_url')
+        .single();
+
+      if (error) throw error;
+      
+      setWebhookUrl(data?.value || '');
+    } catch (error) {
+      console.error('Erro ao buscar configuração do webhook:', error);
+      toast({
+        title: "Erro ao carregar configuração do webhook",
+        description: "Não foi possível carregar a configuração do webhook do n8n",
+        variant: "destructive"
+      });
+    } finally {
+      setWebhookLoading(false);
+    }
+  }, [toast]);
+
+  // Função para salvar a configuração do webhook do n8n
+  const saveWebhookConfig = async () => {
+    setWebhookLoading(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({ value: webhookUrl })
+        .eq('key', 'n8n_webhook_url');
+
+      if (error) throw error;
+      
+      toast({
+        title: "Configuração salva",
+        description: "A URL do webhook do n8n foi atualizada com sucesso",
+        variant: "default"
+      });
+      
+      setIsWebhookDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar configuração do webhook:', error);
+      toast({
+        title: "Erro ao salvar configuração",
+        description: "Não foi possível salvar a configuração do webhook do n8n",
+        variant: "destructive"
+      });
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchSubscriptions();
-  }, [fetchSubscriptions]);
+    fetchWebhookConfig();
+  }, [fetchSubscriptions, fetchWebhookConfig]);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -342,7 +403,16 @@ const AdminAssinaturas = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Gerenciamento de Assinaturas</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Gerenciamento de Assinaturas</CardTitle>
+            <Button
+              variant="outline"
+              onClick={() => setIsWebhookDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <span>Configurar Webhook n8n</span>
+            </Button>
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -422,47 +492,16 @@ const AdminAssinaturas = () => {
                       <TableCell>{formatDate(subscription.next_due_date)}</TableCell>
                       <TableCell>{getBillingTypeText(subscription.billing_type)}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Gerenciar</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Gerenciar Assinatura</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedSubscription(subscription);
-                                setIsAddMonthsDialogOpen(true);
-                              }}
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Adicionar meses de plano ativo
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedSubscription(subscription);
-                                setIsAddTrialDialogOpen(true);
-                              }}
-                            >
-                              <CalendarClock className="mr-2 h-4 w-4" />
-                              Adicionar dias de teste
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600"
-                              onClick={() => {
-                                setSelectedSubscription(subscription);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir assinatura
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSubscription(subscription);
+                            setIsManageDialogOpen(true);
+                          }}
+                        >
+                          Gerenciar
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -472,6 +511,257 @@ const AdminAssinaturas = () => {
           )}
         </CardContent>
       </Card>
+    
+      {/* Dialog principal de gerenciamento */}
+      <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerenciar Assinatura</DialogTitle>
+            <DialogDescription>
+              Escolha uma ação para a assinatura da clínica {selectedSubscription?.clinics?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col space-y-4 py-4">
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => {
+                setIsManageDialogOpen(false);
+                setIsAddMonthsDialogOpen(true);
+              }}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Adicionar meses de plano ativo
+            </Button>
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => {
+                setIsManageDialogOpen(false);
+                setIsAddTrialDialogOpen(true);
+              }}
+            >
+              <CalendarClock className="mr-2 h-4 w-4" />
+              Adicionar dias de teste
+            </Button>
+            <Button
+              className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
+              variant="outline"
+              onClick={() => {
+                setIsManageDialogOpen(false);
+                setIsDeleteDialogOpen(true);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir assinatura
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setIsManageDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog para confirmar exclusão de assinatura */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Assinatura</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir a assinatura da clínica {selectedSubscription?.clinics?.name}?
+              Esta ação não pode ser desfeita e removerá o acesso ao plano ativo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSubscription}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                "Excluir"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para adicionar meses ao plano ativo */}
+      <Dialog open={isAddMonthsDialogOpen} onOpenChange={setIsAddMonthsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Meses ao Plano Ativo</DialogTitle>
+            <DialogDescription>
+              Adicione meses de plano ativo para a clínica {selectedSubscription?.clinics?.name}.
+              A data de vencimento será estendida e o status da assinatura será definido como ativo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="months" className="text-right">
+                Meses
+              </Label>
+              <Select
+                value={monthsToAdd.toString()}
+                onValueChange={(value) => setMonthsToAdd(parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione a quantidade de meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 mês</SelectItem>
+                  <SelectItem value="3">3 meses</SelectItem>
+                  <SelectItem value="6">6 meses</SelectItem>
+                  <SelectItem value="12">12 meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddMonthsDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddActivePlanMonths}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adicionando...
+                </>
+              ) : (
+                "Adicionar Meses"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para adicionar dias de teste */}
+      <Dialog open={isAddTrialDialogOpen} onOpenChange={setIsAddTrialDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Dias de Teste</DialogTitle>
+            <DialogDescription>
+              Adicione dias ao período de teste para a clínica {selectedSubscription?.clinics?.name}.
+              A data de vencimento será estendida e o plano será definido como "Teste".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="days" className="text-right">
+                Dias
+              </Label>
+              <Select
+                value={daysToAdd.toString()}
+                onValueChange={(value) => setDaysToAdd(parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione a quantidade de dias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 dias</SelectItem>
+                  <SelectItem value="14">14 dias</SelectItem>
+                  <SelectItem value="30">30 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddTrialDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddTrialDays}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adicionando...
+                </>
+              ) : (
+                "Adicionar Dias"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog para configurar webhook do n8n */}
+      <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar Webhook do n8n</DialogTitle>
+            <DialogDescription>
+              Configure a URL do webhook do n8n para integração com o sistema.
+              Esta URL será usada para enviar notificações sobre eventos de assinatura.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="webhookUrl" className="text-right">
+                URL do Webhook
+              </Label>
+              <Input
+                id="webhookUrl"
+                className="col-span-3"
+                placeholder="https://seu-servidor-n8n.com/webhook/..."
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsWebhookDialogOpen(false)}
+              disabled={webhookLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={saveWebhookConfig}
+              disabled={webhookLoading}
+            >
+              {webhookLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Configuração"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

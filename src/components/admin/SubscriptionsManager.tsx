@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar, CalendarClock, Trash2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 // Tipagem para os dados combinados
 interface ClinicSubscriptionInfo {
@@ -24,9 +26,19 @@ interface ClinicSubscriptionInfo {
 }
 
 const SubscriptionsManager = () => {
+  const { toast } = useToast();
   const [clinics, setClinics] = useState<ClinicSubscriptionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Estados para controlar os diálogos
+  const [selectedClinic, setSelectedClinic] = useState<ClinicSubscriptionInfo | null>(null);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [isAddMonthsDialogOpen, setIsAddMonthsDialogOpen] = useState(false);
+  const [isAddTrialDialogOpen, setIsAddTrialDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [monthsToAdd, setMonthsToAdd] = useState(1);
+  const [daysToAdd, setDaysToAdd] = useState(7);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -149,6 +161,7 @@ const SubscriptionsManager = () => {
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Gerenciamento de Assinaturas</CardTitle>
@@ -206,7 +219,16 @@ const SubscriptionsManager = () => {
                     </TableCell>
                     <TableCell className="text-right">{clinic.days_remaining !== null ? `${clinic.days_remaining} dias` : 'N/A'}</TableCell>
                     <TableCell className="text-center">
-                        <Button variant="ghost" size="sm">Gerenciar</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedClinic(clinic);
+                            setIsManageDialogOpen(true);
+                          }}
+                        >
+                          Gerenciar
+                        </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -222,6 +244,324 @@ const SubscriptionsManager = () => {
         </div>
       </CardContent>
     </Card>
+
+      <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Gerenciar Assinatura</DialogTitle>
+          <DialogDescription>
+            Escolha uma ação para a clínica {selectedClinic?.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col space-y-4 py-4">
+          <Button
+            className="w-full justify-start"
+            variant="outline"
+            onClick={() => {
+              setIsManageDialogOpen(false);
+              setIsAddMonthsDialogOpen(true);
+            }}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            Adicionar meses de plano ativo
+          </Button>
+          <Button
+            className="w-full justify-start"
+            variant="outline"
+            onClick={() => {
+              setIsManageDialogOpen(false);
+              setIsAddTrialDialogOpen(true);
+            }}
+          >
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Adicionar dias de teste
+          </Button>
+          <Button
+            className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
+            variant="outline"
+            onClick={() => {
+              setIsManageDialogOpen(false);
+              setIsDeleteDialogOpen(true);
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Excluir assinatura
+          </Button>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => setIsManageDialogOpen(false)}
+          >
+            Cancelar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Diálogo para adicionar meses ao plano */}
+    <Dialog open={isAddMonthsDialogOpen} onOpenChange={setIsAddMonthsDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar Meses ao Plano</DialogTitle>
+          <DialogDescription>
+            Adicione meses de plano ativo para a clínica {selectedClinic?.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <div className="flex items-center space-x-2">
+            <Input 
+              type="number" 
+              min="1" 
+              max="12" 
+              value={monthsToAdd} 
+              onChange={(e) => setMonthsToAdd(parseInt(e.target.value) || 1)} 
+            />
+            <span>meses</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsAddMonthsDialogOpen(false)}>Cancelar</Button>
+          <Button 
+            onClick={async () => {
+              try {
+                setLoading(true);
+                
+                // Buscar a assinatura atual da clínica
+                const { data: subscriptionsData, error: subscriptionError } = await supabase
+                  .from('subscriptions')
+                  .select('*')
+                  .eq('clinic_id', selectedClinic?.id);
+                
+                if (subscriptionError) {
+                  console.error('Erro ao buscar assinatura:', subscriptionError);
+                  throw subscriptionError;
+                }
+                
+                if (!subscriptionsData || subscriptionsData.length === 0) {
+                  toast({
+                    title: "Erro",
+                    description: "Não foi encontrada uma assinatura para esta clínica",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
+                // Usar a primeira assinatura encontrada
+                const subscriptionData = subscriptionsData[0];
+                
+                // Calcular a nova data de vencimento
+                const currentDueDate = subscriptionData.next_due_date 
+                  ? new Date(subscriptionData.next_due_date) 
+                  : new Date();
+                
+                const newDueDate = new Date(currentDueDate);
+                newDueDate.setMonth(newDueDate.getMonth() + monthsToAdd);
+                
+                // Atualizar a assinatura
+                const { error: updateError } = await supabase
+                  .from('subscriptions')
+                  .update({
+                    next_due_date: newDueDate.toISOString(),
+                    status: 'ACTIVE',
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', subscriptionData.id);
+                
+                if (updateError) throw updateError;
+                
+                toast({
+                  title: "Sucesso",
+                  description: `Foram adicionados ${monthsToAdd} meses ao plano da clínica ${selectedClinic?.name}`,
+                  variant: "default"
+                });
+                
+                // Recarregar os dados
+                fetchSubscriptions();
+              } catch (error) {
+                console.error('Erro ao adicionar meses ao plano:', error);
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível adicionar meses ao plano. Tente novamente.",
+                  variant: "destructive"
+                });
+              } finally {
+                setLoading(false);
+                setIsAddMonthsDialogOpen(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Confirmar"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+      {/* Diálogo para adicionar dias de teste */}
+      <Dialog open={isAddTrialDialogOpen} onOpenChange={setIsAddTrialDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar Dias de Teste</DialogTitle>
+          <DialogDescription>
+            Adicione dias de teste para a clínica {selectedClinic?.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <div className="flex items-center space-x-2">
+            <Input 
+              type="number" 
+              min="1" 
+              max="30" 
+              value={daysToAdd} 
+              onChange={(e) => setDaysToAdd(parseInt(e.target.value) || 7)} 
+            />
+            <span>dias</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsAddTrialDialogOpen(false)}>Cancelar</Button>
+          <Button 
+            onClick={async () => {
+              try {
+                setLoading(true);
+                
+                // Calcular a nova data de fim do período de teste
+                const today = new Date();
+                const trialEndDate = new Date(today);
+                trialEndDate.setDate(trialEndDate.getDate() + daysToAdd);
+                
+                // Atualizar a clínica com a nova data de fim do período de teste
+                const { error: updateError } = await supabase
+                  .from('clinics')
+                  .update({
+                    trial_ends_at: trialEndDate.toISOString(),
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', selectedClinic?.id);
+                
+                if (updateError) throw updateError;
+                
+                toast({
+                  title: "Sucesso",
+                  description: `Foram adicionados ${daysToAdd} dias de teste para a clínica ${selectedClinic?.name}`,
+                  variant: "default"
+                });
+                
+                // Recarregar os dados
+                fetchSubscriptions();
+              } catch (error) {
+                console.error('Erro ao adicionar dias de teste:', error);
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível adicionar dias de teste. Tente novamente.",
+                  variant: "destructive"
+                });
+              } finally {
+                setLoading(false);
+                setIsAddTrialDialogOpen(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Confirmar"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+      {/* Diálogo para confirmar exclusão de assinatura */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Excluir Assinatura</DialogTitle>
+          <DialogDescription>
+            Tem certeza que deseja excluir a assinatura da clínica {selectedClinic?.name}?
+            Esta ação não pode ser desfeita.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
+          <Button 
+            variant="destructive" 
+            onClick={async () => {
+              try {
+                setLoading(true);
+                
+                // Buscar a assinatura atual da clínica
+                const { data: subscriptionData, error: subscriptionError } = await supabase
+                  .from('subscriptions')
+                  .select('id')
+                  .eq('clinic_id', selectedClinic?.id);
+                
+                if (subscriptionError) throw subscriptionError;
+                
+                if (!subscriptionData || subscriptionData.length === 0) {
+                  toast({
+                    title: "Erro",
+                    description: "Não foi encontrada uma assinatura para esta clínica",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
+                // Excluir a assinatura
+                const { error: deleteError } = await supabase
+                  .from('subscriptions')
+                  .delete()
+                  .eq('id', subscriptionData[0].id);
+                
+                if (deleteError) throw deleteError;
+                
+                toast({
+                  title: "Sucesso",
+                  description: `A assinatura da clínica ${selectedClinic?.name} foi excluída com sucesso`,
+                  variant: "default"
+                });
+                
+                // Recarregar os dados
+                fetchSubscriptions();
+              } catch (error) {
+                console.error('Erro ao excluir assinatura:', error);
+                toast({
+                  title: "Erro",
+                  description: "Não foi possível excluir a assinatura. Tente novamente.",
+                  variant: "destructive"
+                });
+              } finally {
+                setLoading(false);
+                setIsDeleteDialogOpen(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Excluir"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

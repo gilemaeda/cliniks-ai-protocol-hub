@@ -1,15 +1,16 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Settings, UserPlus, Trash2, Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
+import { Settings, UserPlus, Trash2, Eye, EyeOff, Shield, AlertTriangle, Loader2, Link } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 interface AdminUser {
   id: string;
@@ -32,12 +33,89 @@ const AdminSettings = () => {
     full_name: '',
     is_master: false
   });
+  
+  // Estados para configuração do webhook
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchAdminUsers();
-  }, []);
+  // Função para buscar a configuração do webhook do n8n
+  const fetchWebhookConfig = useCallback(async () => {
+    setWebhookLoading(true);
+    try {
+      // Buscar todos os registros e filtrar pelo key no código
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('key', 'n8n_webhook_url');
 
-  const fetchAdminUsers = async () => {
+      if (error) throw error;
+      
+      // Se encontrou algum registro, use o primeiro
+      if (data && data.length > 0) {
+        setWebhookUrl(data[0].value || '');
+      } else {
+        // Se não encontrou, crie o registro
+        console.log('Registro de webhook não encontrado, criando...');
+        const { error: insertError } = await supabase
+          .from('system_settings')
+          .insert({
+            key: 'n8n_webhook_url',
+            value: '',
+            description: 'URL do webhook do n8n para integração com o sistema'
+          });
+          
+        if (insertError) {
+          console.error('Erro ao criar registro de webhook:', insertError);
+          throw insertError;
+        }
+        
+        setWebhookUrl('');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar configuração do webhook:', error);
+      toast({
+        title: "Erro ao carregar configuração do webhook",
+        description: "Não foi possível carregar a configuração do webhook do n8n",
+        variant: "destructive"
+      });
+    } finally {
+      setWebhookLoading(false);
+    }
+  }, [toast]);
+
+  // Função para salvar a configuração do webhook do n8n
+  const saveWebhookConfig = async () => {
+    setWebhookLoading(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({ value: webhookUrl })
+        .eq('key', 'n8n_webhook_url');
+
+      if (error) throw error;
+      
+      toast({
+        title: "Configuração salva",
+        description: "A URL do webhook do n8n foi atualizada com sucesso",
+        variant: "default"
+      });
+      
+      setIsWebhookDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar configuração do webhook:', error);
+      toast({
+        title: "Erro ao salvar configuração",
+        description: "Não foi possível salvar a configuração do webhook do n8n",
+        variant: "destructive"
+      });
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
+  // Função para buscar administradores
+  const fetchAdminUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('admin_users')
@@ -59,7 +137,13 @@ const AdminSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Efeito para carregar dados iniciais
+  useEffect(() => {
+    fetchAdminUsers();
+    fetchWebhookConfig();
+  }, [fetchAdminUsers, fetchWebhookConfig]);
 
   const createAdmin = async () => {
     try {
@@ -352,19 +436,110 @@ const AdminSettings = () => {
       {/* Configurações Gerais */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
-            <span>Configurações Gerais da Plataforma</span>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
+              <span>Configurações Gerais da Plataforma</span>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>Configurações gerais em desenvolvimento...</p>
-            <p className="text-sm mt-2">
-              Em breve: configurações de marca, notificações, backup e mais.
-            </p>
+          <div className="space-y-6">
+            {/* Seção de Webhook do n8n */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-lg font-medium">Webhook do n8n</h4>
+                  <p className="text-sm text-gray-500">
+                    Configure a URL do webhook do n8n para integração com o sistema.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsWebhookDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Configurar</span>
+                </Button>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                <div className="flex items-center">
+                  <Link className="h-4 w-4 mr-2 text-blue-500" />
+                  <span className="text-sm font-mono truncate">
+                    {webhookUrl ? webhookUrl : "Nenhuma URL configurada"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Outras configurações futuras */}
+            <div className="border rounded-lg p-4 text-center text-gray-500">
+              <Settings className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <p>Mais configurações em desenvolvimento...</p>
+              <p className="text-xs mt-1">
+                Em breve: configurações de marca, notificações, backup e mais.
+              </p>
+            </div>
           </div>
+
+          {/* Dialog para configurar webhook do n8n */}
+          <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Configurar Webhook do n8n</DialogTitle>
+                <DialogDescription>
+                  Configure a URL do webhook do n8n para integração com o sistema.
+                  Esta URL será usada para enviar notificações sobre eventos de assinatura.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="webhookUrl" className="text-right">
+                    URL do Webhook
+                  </Label>
+                  <Input
+                    id="webhookUrl"
+                    className="col-span-3"
+                    placeholder="https://seu-servidor-n8n.com/webhook/..."
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">Sobre o Webhook do n8n</h4>
+                <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
+                  <li>O webhook será acionado automaticamente quando uma clínica contratar um plano ou quando o status da assinatura mudar.</li>
+                  <li>Dados enviados no webhook: ID da clínica, nome da clínica, ID da assinatura, status da assinatura, data de vencimento e informações do proprietário.</li>
+                  <li>Use o n8n para automatizar ações como envio de e-mails de boas-vindas, lembretes de pagamento ou notificações de expiração.</li>
+                  <li>A URL deve apontar para um endpoint válido do n8n configurado para receber webhooks.</li>
+                </ul>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsWebhookDialogOpen(false)}
+                  disabled={webhookLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={saveWebhookConfig}
+                  disabled={webhookLoading}
+                >
+                  {webhookLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Configuração"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
