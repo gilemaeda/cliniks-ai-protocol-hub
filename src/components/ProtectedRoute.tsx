@@ -34,10 +34,26 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Allow access to dashboard and subscription pages regardless of plan status,
-  // so users can see the locked UI and manage their subscription.
-  const allowedPaths = ['/dashboard', '/assinaturas'];
-  if (!canAccess && !allowedPaths.includes(location.pathname)) {
+  // Allow access to dashboard, subscription and configuration pages regardless of plan status,
+  // so users can see the locked UI, manage their subscription, and update their profile/clinic info.
+  const allowedPaths = [
+    '/dashboard', 
+    '/assinaturas', 
+    '/configuracao', 
+    '/configuracao/clinica', 
+    '/configuracao/profissional',
+    '/configuracao-clinica',
+    '/configuracao-profissional'
+  ];
+  
+  // Verificar se o caminho atual começa com algum dos caminhos permitidos
+  const isAllowedPath = allowedPaths.some(path => 
+    location.pathname === path || location.pathname.startsWith(`${path}/`)
+  );
+  
+  console.log('Caminho atual:', location.pathname, 'Acesso permitido:', isAllowedPath);
+  
+  if (!canAccess && !isAllowedPath) {
     return <Navigate to="/dashboard" replace />;
   }
 

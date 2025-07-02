@@ -63,18 +63,47 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
 
       if (clinicData) {
-        // 3. Buscar a última assinatura da clínica para verificar seu status
-        const { data: subscriptionData, error: subError } = await supabase
-          .from('subscriptions')
-          .select('status')
-          .eq('clinic_id', clinicData.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (subError && subError.code !== 'PGRST116') { // Ignora erro 'nenhum resultado encontrado'
-          console.error('Erro ao buscar assinatura:', subError);
+        // 3. Buscar a última assinatura da clínica para verificar seu status usando a Edge Function
+        let subscriptionData = null;
+        let subError = null;
+        
+        try {
+          // Obter o token de autenticação
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          
+          if (!token) {
+            throw new Error('Sessão não encontrada');
+          }
+          
+          // Chamar a Edge Function para buscar os dados da assinatura
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-subscription-data?clinic_id=${clinicData.id}`,
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Erro na Edge Function:', errorData);
+            throw new Error(`Erro ${response.status}: ${errorData.error || 'Desconhecido'}`);
+          }
+          
+          const result = await response.json();
+          console.log('Dados da assinatura via Edge Function (ClinicContext):', result);
+          
+          subscriptionData = result.data;
+        } catch (error) {
+          console.error('Erro ao buscar assinatura via Edge Function:', error);
+          // Continuamos o fluxo mesmo com erro
         }
+
+        // Não precisamos mais verificar subError, pois estamos usando a Edge Function
 
         // 4. Determinar o status do plano
         const today = new Date();

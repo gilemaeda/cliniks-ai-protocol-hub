@@ -106,21 +106,44 @@ const Assinaturas = () => {
   const [selectedBillingType, setSelectedBillingType] = useState('CREDIT_CARD');
 
   const fetchSubscriptionData = useCallback(async () => {
-    if (!clinic?.clinic_id) {
+    if (!clinic?.id) {
       setLoading(false);
       return;
     }
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('clinic_id', clinic.clinic_id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setSubscription(data);
+      // Usar a Edge Function para contornar o problema de RLS/permissões
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      if (!token) {
+        throw new Error('Sessão não encontrada');
+      }
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-subscription-data?clinic_id=${clinic.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Erro na Edge Function:', errorData);
+        throw new Error(`Erro ${response.status}: ${errorData.error || 'Desconhecido'}`);
+      }
+      
+      const result = await response.json();
+      console.log('Dados da assinatura via Edge Function:', result);
+      
+      if (result.data) {
+        setSubscription(result.data);
+      }
     } catch (error) {
       console.error('Erro ao buscar dados da assinatura:', error);
       toast({
@@ -131,10 +154,10 @@ const Assinaturas = () => {
     } finally {
       setLoading(false);
     }
-  }, [clinic?.clinic_id, toast]);
+  }, [clinic?.id, toast]);
 
   useEffect(() => {
-    if (clinic?.clinic_id) {
+    if (clinic) {
       fetchSubscriptionData();
     } else {
       setLoading(false);
@@ -142,9 +165,14 @@ const Assinaturas = () => {
   }, [clinic, fetchSubscriptionData]);
 
   const handleCreateSubscription = async () => {
-    const clinicId = clinic?.id;
-    if (!clinicId) {
-      toast({ title: 'Erro', description: 'ID da clínica não encontrado.', variant: 'destructive' });
+    console.log('Iniciando criação de assinatura com dados da clínica:', clinic);
+    
+    if (!clinic?.id) {
+      toast({
+        title: 'Erro',
+        description: 'Dados da clínica não encontrados.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -157,22 +185,61 @@ const Assinaturas = () => {
     }
 
     try {
+      // Log detalhado dos dados enviados para a Edge Function
+      const requestData = {
+        clinicId: clinic.id,
+        planName: plano.nome,
+        billingType: selectedBillingType,
+        value: plano.valor,
+        cycle: plano.ciclo,
+      };
+      
+      console.log('Enviando dados para Edge Function:', JSON.stringify(requestData, null, 2));
+      
       const { data, error } = await supabase.functions.invoke('create-asaas-subscription', {
-        body: {
-          clinic_id: clinicId,
-          plan_name: plano.nome,
-          billing_type: selectedBillingType,
-          value: plano.valor,
-          cycle: plano.ciclo,
-        },
+        body: requestData,
       });
 
       if (error) {
+        console.error('Erro retornado pela Edge Function:', error);
+        
         if (error.context?.status === 500) {
-          const responseText = await error.context.json();
-          toast({ title: 'Erro de Configuração', description: responseText.error || 'Ocorreu um erro interno no servidor.', variant: 'destructive', duration: 9000 });
+          try {
+            const responseText = await error.context.json();
+            console.error('Detalhes do erro 500:', responseText);
+            
+            // Mensagens mais amigáveis baseadas em erros comuns do Asaas
+            let errorMessage = responseText.error || 'Ocorreu um erro interno no servidor.';
+            
+            if (errorMessage.includes('CPF/CNPJ')) {
+              errorMessage = 'O CPF/CNPJ informado é inválido ou está faltando. Verifique os dados da clínica e do proprietário.';
+            } else if (errorMessage.includes('name')) {
+              errorMessage = 'O nome do proprietário ou da clínica não está preenchido corretamente.';
+            } else if (errorMessage.includes('email')) {
+              errorMessage = 'O email do proprietário não é válido ou está faltando.';
+            }
+            
+            toast({ 
+              title: 'Erro ao criar assinatura', 
+              description: errorMessage, 
+              variant: 'destructive', 
+              duration: 9000 
+            });
+          } catch (jsonError) {
+            console.error('Erro ao processar resposta JSON:', jsonError);
+            toast({ 
+              title: 'Erro de Configuração', 
+              description: 'Ocorreu um erro interno no servidor. Verifique se todos os dados da clínica e do proprietário estão preenchidos corretamente.', 
+              variant: 'destructive', 
+              duration: 9000 
+            });
+          }
         } else {
-          toast({ title: 'Erro ao Criar Assinatura', description: error.message, variant: 'destructive' });
+          toast({ 
+            title: 'Erro ao Criar Assinatura', 
+            description: error.message, 
+            variant: 'destructive' 
+          });
         }
         return;
       }

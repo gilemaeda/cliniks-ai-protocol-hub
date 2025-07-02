@@ -85,10 +85,28 @@ serve(async (req) => {
       throw new Error('Perfil do proprietário da clínica não encontrado.');
     }
     
-    // Verificar se o nome do proprietário está preenchido
-    if (!ownerProfile.full_name) {
-      console.error('Nome do proprietário não preenchido');
-      throw new Error('O nome do proprietário da clínica não está preenchido. Por favor, complete seu perfil.');
+    // Validações mais detalhadas dos dados do proprietário
+    const validationErrors = [];
+    
+    if (!ownerProfile.full_name || ownerProfile.full_name.trim() === '') {
+      validationErrors.push('O nome do proprietário da clínica não está preenchido');
+    }
+    
+    if (!ownerProfile.email || ownerProfile.email.trim() === '') {
+      validationErrors.push('O email do proprietário não está preenchido');
+    }
+    
+    if (!ownerProfile.cpf || ownerProfile.cpf.trim() === '') {
+      validationErrors.push('O CPF do proprietário não está preenchido');
+    }
+    
+    if (!clinicData.cnpj || clinicData.cnpj.trim() === '') {
+      validationErrors.push('O CNPJ da clínica não está preenchido');
+    }
+    
+    if (validationErrors.length > 0) {
+      console.error('Validação falhou:', validationErrors);
+      throw new Error(`Dados incompletos: ${validationErrors.join(', ')}. Por favor, complete seu perfil e os dados da clínica.`);
     }
 
     // Verifica se já existe uma assinatura para esta clínica
@@ -114,27 +132,53 @@ serve(async (req) => {
       });
     }
 
-    // Determina o CPF/CNPJ a ser usado para a criação do cliente no Asaas, priorizando o da clínica
-    const cpfCnpj = clinicData.cnpj || ownerProfile.cpf;
-    if (!cpfCnpj) {
-      throw new Error('CPF/CNPJ não encontrado. Por favor, complete os dados cadastrais da clínica ou do proprietário.');
+    // Escolher entre CNPJ da clínica ou CPF do proprietário para o cliente Asaas
+    let cpfCnpj = '';
+    if (clinicData.cnpj && clinicData.cnpj.trim() !== '') {
+      // Remover caracteres não numéricos do CNPJ
+      cpfCnpj = clinicData.cnpj.replace(/[^0-9]/g, '');
+      
+      // Validar tamanho do CNPJ (deve ter 14 dígitos)
+      if (cpfCnpj.length !== 14) {
+        console.error(`CNPJ inválido (${cpfCnpj.length} dígitos): ${cpfCnpj}`);
+        throw new Error(`CNPJ inválido: deve ter 14 dígitos numéricos. O valor atual tem ${cpfCnpj.length} dígitos.`);
+      }
+    } else if (ownerProfile.cpf && ownerProfile.cpf.trim() !== '') {
+      // Remover caracteres não numéricos do CPF
+      cpfCnpj = ownerProfile.cpf.replace(/[^0-9]/g, '');
+      
+      // Validar tamanho do CPF (deve ter 11 dígitos)
+      if (cpfCnpj.length !== 11) {
+        console.error(`CPF inválido (${cpfCnpj.length} dígitos): ${cpfCnpj}`);
+        throw new Error(`CPF inválido: deve ter 11 dígitos numéricos. O valor atual tem ${cpfCnpj.length} dígitos.`);
+      }
+    } else {
+      throw new Error('CPF/CNPJ não encontrado para a clínica ou proprietário. Por favor, complete os dados cadastrais.');
     }
-    console.log(`Documento selecionado para o cliente Asaas: ${cpfCnpj}`);
+    console.log(`Documento selecionado para o cliente Asaas: ${cpfCnpj} (${cpfCnpj.length} dígitos)`);
 
     // Cria ou recupera o cliente no Asaas
     let asaasCustomerId = existingSubscription?.asaas_customer_id;
     if (!asaasCustomerId) {
       // Cria um novo cliente no Asaas
       const customerData: AsaasCustomerRequest = {
-        name: ownerProfile.full_name,
-        email: ownerProfile.email,
-        phone: ownerProfile.phone || '',
-        cpfCnpj: cpfCnpj, // Usa o documento selecionado
-        notificationDisabled: true
+        name: ownerProfile.full_name.trim(),
+        email: ownerProfile.email.trim(),
+        phone: ownerProfile.phone ? ownerProfile.phone.replace(/[^0-9]/g, '') : '',
+        cpfCnpj: cpfCnpj,
+        notificationDisabled: false
       };
-      
-      console.log('--- Dados para criar cliente no Asaas ---', JSON.stringify(customerData, null, 2));
 
+      // Validação adicional dos dados do cliente antes de enviar para o Asaas
+      if (!customerData.name || customerData.name.length < 3) {
+        throw new Error(`Nome inválido para criação do cliente: '${customerData.name}'. O nome deve ter pelo menos 3 caracteres.`);
+      }
+      
+      if (!customerData.email || !customerData.email.includes('@')) {
+        throw new Error(`Email inválido para criação do cliente: '${customerData.email}'. Verifique o formato do email.`);
+      }
+
+      console.log('--- Criando cliente no Asaas ---', JSON.stringify(customerData, null, 2));
       const customerResponse = await fetch(`${asaasBaseUrl}/customers`, {
         method: 'POST',
         headers: {
