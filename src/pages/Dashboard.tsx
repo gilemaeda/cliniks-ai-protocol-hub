@@ -1,5 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useClinic } from '@/hooks/useClinic';
 import { Navigate } from 'react-router-dom';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import QuickActions from '@/components/dashboard/QuickActions';

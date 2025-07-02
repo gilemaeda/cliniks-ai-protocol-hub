@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,13 +12,35 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import MainTools from '@/components/dashboard/MainTools';
-import { FileText, Users, Camera, Calendar, Settings, Brain } from 'lucide-react';
+import { FileText, Users, Camera, Calendar, Settings, Brain, Lock } from 'lucide-react';
+import { useAccessControl } from '@/hooks/useAccessControl';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
+// Type definitions for better type safety
+interface Clinic {
+  id: string;
+  name: string;
+  brand_colors: {
+    primary: string;
+    secondary: string;
+    text: string;
+    background: string;
+  };
+  banner_url: string;
+  plan_status: 'active' | 'inactive' | 'trialing' | 'expired';
+}
+
+interface Professional {
+  id: string;
+  name: string;
+}
 
 const ProfessionalDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [clinic, setClinic] = useState<any>(null);
-  const [professional, setProfessional] = useState<any>(null);
+  const { canAccess, blockReason, isChecking } = useAccessControl();
+  const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [professional, setProfessional] = useState<Professional | null>(null);
   const [stats, setStats] = useState({
     assessments: 0,
     patients: 0,
@@ -26,13 +48,40 @@ const ProfessionalDashboard = () => {
     protocols: 0
   });
 
-  useEffect(() => {
-    if (user && profile?.role === 'professional') {
-      fetchProfessionalData();
-    }
-  }, [user, profile]);
+  const fetchProfessionalStats = useCallback(async (professionalId: string, clinicId: string) => {
+    try {
+      const { count: assessmentsCount } = await supabase
+        .from('assessments')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', professionalId);
 
-  const fetchProfessionalData = async () => {
+      const { count: patientsCount } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', professionalId);
+
+      const { count: photosCount } = await supabase
+        .from('patient_photos')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', professionalId);
+
+      const { count: protocolsCount } = await supabase
+        .from('custom_protocols')
+        .select('*', { count: 'exact', head: true })
+        .eq('clinic_id', clinicId);
+
+      setStats({
+        assessments: assessmentsCount || 0,
+        patients: patientsCount || 0,
+        photos: photosCount || 0,
+        protocols: protocolsCount || 0
+      });
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error);
+    }
+  }, []);
+
+  const fetchProfessionalData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -80,44 +129,15 @@ const ProfessionalDashboard = () => {
     } catch (error) {
       console.error('Erro ao buscar dados do profissional:', error);
     }
-  };
+  }, [user, fetchProfessionalStats]);
 
-  const fetchProfessionalStats = async (professionalId: string, clinicId: string) => {
-    try {
-      // Avaliações do profissional
-      const { count: assessmentsCount } = await supabase
-        .from('assessments')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      // Pacientes únicos do profissional
-      const { count: patientsCount } = await supabase
-        .from('patients')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      // Fotos do profissional
-      const { count: photosCount } = await supabase
-        .from('patient_photos')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      // Protocolos da clínica (compartilhados)
-      const { count: protocolsCount } = await supabase
-        .from('custom_protocols')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
-
-      setStats({
-        assessments: assessmentsCount || 0,
-        patients: patientsCount || 0,
-        photos: photosCount || 0,
-        protocols: protocolsCount || 0
-      });
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
+  useEffect(() => {
+    if (user && profile?.role === 'professional') {
+      fetchProfessionalData();
     }
-  };
+  }, [user, profile, fetchProfessionalData]);
+
+
 
   const handleSignOut = async () => {
     await signOut();
@@ -127,9 +147,56 @@ const ProfessionalDashboard = () => {
   // Aplicar cores da clínica se disponível
   const clinicColors = clinic?.brand_colors || {};
   const primaryColor = clinicColors.primary || '#3b82f6';
-  const secondaryColor = clinicColors.secondary || '#8b5cf6';
+  const secondaryColor = clinicColors.secondary || '#6366f1';
+  const textColor = clinicColors.text || '#1f2937';
+  const backgroundColor = clinicColors.background || '#f9fafb';
+  const bannerUrl = clinic?.banner_url || '/default-banner.jpg';
 
-  // Não renderizar banner aqui! Apenas MainLayout deve exibir o banner.
+  const additionalTools = [
+    {
+      title: 'Avaliação com IA',
+      description: 'Realize avaliações estéticas com inteligência artificial',
+      icon: Brain,
+      onClick: () => navigate('/avaliacao-ia'),
+      color: 'primary',
+    },
+    {
+      title: 'Pacientes',
+      description: 'Gerencie o cadastro de pacientes',
+      icon: Users,
+      onClick: () => navigate('/patients'),
+      color: 'primary',
+    },
+    {
+      title: 'Anamneses',
+      description: 'Coleta e análise de dados de anamnese',
+      icon: FileText,
+      onClick: () => navigate('/anamneses'),
+      color: 'primary',
+    },
+    {
+      title: 'Galeria de Fotos',
+      description: 'Antes e depois dos tratamentos',
+      icon: Camera,
+      onClick: () => navigate('/galeria-fotos'),
+      color: 'secondary',
+    },
+    {
+      title: 'Protocolos',
+      description: 'Protocolos personalizados e IA',
+      icon: Calendar,
+      onClick: () => navigate('/protocolos-personalizados'),
+      color: 'secondary',
+    },
+    {
+      title: 'Configurações',
+      description: 'Configurações do perfil profissional',
+      icon: Settings,
+      onClick: () => navigate('/configuracao-profissional'),
+      color: 'secondary',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -185,89 +252,61 @@ const ProfessionalDashboard = () => {
         
         {/* Cards adicionais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/avaliacao-ia')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: primaryColor }}>
-                <Brain className="h-5 w-5" />
-                <span>Avaliação com IA</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Realize avaliações estéticas com inteligência artificial
-              </p>
-            </CardContent>
-          </Card>
+          <TooltipProvider>
+            {additionalTools.map((tool) => {
+              const Icon = tool.icon;
+              const isBlocked = !canAccess && !isChecking;
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/patients')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: primaryColor }}>
-                <Users className="h-5 w-5" />
-                <span>Pacientes</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Gerencie o cadastro de pacientes
-              </p>
-            </CardContent>
-          </Card>
+              const cardItself = (
+                <div className="relative">
+                  <Card
+                    className={`cursor-pointer hover:shadow-lg transition-shadow ${isBlocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    onClick={isBlocked ? undefined : tool.onClick}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2" style={{ color: tool.color === 'primary' ? primaryColor : secondaryColor }}>
+                        <Icon className="h-5 w-5" />
+                        <span>{tool.title}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {tool.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  {isBlocked && (
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-xl z-10 pointer-events-none">
+                      <Lock className="h-10 w-10 text-white" />
+                    </div>
+                  )}
+                </div>
+              );
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/anamneses')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: primaryColor }}>
-                <FileText className="h-5 w-5" />
-                <span>Anamneses</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Coleta e análise de dados de anamnese
-              </p>
-            </CardContent>
-          </Card>
+              if (isBlocked) {
+                return (
+                  <Tooltip key={tool.title}>
+                    <TooltipTrigger asChild>
+                      <div>{cardItself}</div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {blockReason === 'EXPIRED'
+                          ? 'O plano da clínica expirou. Peça para o proprietário renovar.'
+                          : 'O plano da clínica está inativo. Peça para o proprietário ativar.'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/galeria-fotos')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: secondaryColor }}>
-                <Camera className="h-5 w-5" />
-                <span>Galeria de Fotos</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Antes e depois dos tratamentos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/protocolos-personalizados')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: secondaryColor }}>
-                <Calendar className="h-5 w-5" />
-                <span>Protocolos</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Protocolos personalizados e IA
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/configuracao-profissional')}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2" style={{ color: secondaryColor }}>
-                <Settings className="h-5 w-5" />
-                <span>Configurações</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Configurações do perfil profissional
-              </p>
-            </CardContent>
-          </Card>
+              return (
+                <div key={tool.title}>
+                  {cardItself}
+                </div>
+              );
+            })}
+          </TooltipProvider>
         </div>
       </div>
     </div>

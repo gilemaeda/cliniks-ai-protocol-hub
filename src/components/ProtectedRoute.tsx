@@ -1,6 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { useAccessControl } from '@/hooks/useAccessControl';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,38 +9,38 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
+  const { canAccess, isChecking: accessChecking } = useAccessControl();
+  const location = useLocation();
 
-  console.log('ProtectedRoute - State:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    loading, 
-    profileRole: profile?.role,
-    requiredRole 
-  });
+  const isLoading = authLoading || accessChecking;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Verificando autenticação...</p>
+          <p className="text-gray-600 dark:text-gray-400">Verificando permissões...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    console.log('ProtectedRoute - No user, redirecting to /auth');
     return <Navigate to="/auth" replace />;
   }
 
   if (requiredRole && profile?.role !== requiredRole) {
-    console.log('ProtectedRoute - Wrong role. Required:', requiredRole, 'Current:', profile?.role);
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log('ProtectedRoute - Access granted');
+  // Allow access to dashboard and subscription pages regardless of plan status,
+  // so users can see the locked UI and manage their subscription.
+  const allowedPaths = ['/dashboard', '/assinaturas'];
+  if (!canAccess && !allowedPaths.includes(location.pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 

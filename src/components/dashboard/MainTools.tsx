@@ -3,10 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Sparkles, Package, Users, Camera, User, Brain, FileText, MessageCircle, History, CreditCard, ShieldCheck } from 'lucide-react';
+import { Clock, Sparkles, Package, Users, Camera, User, Brain, FileText, MessageCircle, History, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useClinic } from '@/hooks/useClinic';
 import { useEffect, useState, ElementType } from 'react';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useAccessControl } from '@/hooks/useAccessControl';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PlanStatusBanner from './PlanStatusBanner';
 
 interface Tool {
@@ -23,7 +25,8 @@ interface Tool {
 const MainTools = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { planStatus, trialDaysRemaining, clinic } = useClinic();
+  const { canAccess, blockReason, isChecking } = useAccessControl();
+  const { planStatus, trialDaysRemaining } = useClinic(); // Mantido para o banner
   const [tools, setTools] = useState<Tool[]>([]);
 
   useEffect(() => {
@@ -152,32 +155,69 @@ const MainTools = () => {
           Acesse as principais funcionalidades da plataforma
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => {
-            const IconComponent = tool.icon;
-            return (
-              <Card key={tool.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
-                <CardContent className="p-6" onClick={tool.onClick}>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-lg ${tool.color} group-hover:scale-110 transition-transform`}>
-                      <IconComponent className="h-6 w-6 text-white" />
+          <TooltipProvider>
+            {tools.map((tool) => {
+              const IconComponent = tool.icon;
+              const isBlocked = !canAccess && !isChecking;
+
+              const cardItself = (
+                <div className="relative">
+                  <Card
+                    className={`hover:shadow-lg transition-shadow group ${isBlocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                    onClick={isBlocked ? undefined : tool.onClick}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`p-3 rounded-lg ${tool.color} group-hover:scale-110 transition-transform`}>
+                          <IconComponent className="h-6 w-6 text-white" />
+                        </div>
+                        {tool.badge && (
+                          <Badge className={`text-white text-xs ${tool.badgeColor}`}>
+                            {tool.badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-lg mb-1">{tool.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        {tool.description}
+                      </p>
+                      <Button className="w-full" variant="outline" size="sm" disabled={isBlocked}>
+                        Acessar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  {isBlocked && (
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-xl z-10 pointer-events-none">
+                      <Lock className="h-10 w-10 text-white" />
                     </div>
-                    {tool.badge && (
-                      <Badge className={`text-white text-xs ${tool.badgeColor}`}>
-                        {tool.badge}
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-lg mb-1">{tool.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {tool.description}
-                  </p>
-                  <Button className="w-full" variant="outline" size="sm">
-                    Acessar
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  )}
+                </div>
+              );
+
+              if (isBlocked) {
+                return (
+                  <Tooltip key={tool.id}>
+                    <TooltipTrigger asChild>
+                      <div>{cardItself}</div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {blockReason === 'EXPIRED'
+                          ? 'Seu plano expirou. Renove para ter acesso.'
+                          : 'Assine um plano para liberar esta ferramenta.'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <div key={tool.id}>
+                  {cardItself}
+                </div>
+              );
+            })}
+          </TooltipProvider>
         </div>
       </div>
     </div>

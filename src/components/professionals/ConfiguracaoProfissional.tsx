@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useClinic } from '@/contexts/ClinicContext'; // Importar o hook da clínica
+import { useClinic } from '@/hooks/useClinic'; // Importar o hook da clínica
 import { Badge } from '@/components/ui/badge'; // Importar o Badge
 import { ArrowLeft, Save, User, FileText, IdCard, Phone, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

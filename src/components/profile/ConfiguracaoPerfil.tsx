@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { User, Save, Loader2, Building, ShieldCheck } from 'lucide-react';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useClinic } from '@/hooks/useClinic';
 import { Badge } from '@/components/ui/badge';
 
 interface ProfileData {

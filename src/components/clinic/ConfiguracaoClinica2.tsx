@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useClinic } from '@/hooks/useClinic';
 import { Upload, Building, Palette, Bell, Save, Loader2 } from 'lucide-react';
 
 const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {

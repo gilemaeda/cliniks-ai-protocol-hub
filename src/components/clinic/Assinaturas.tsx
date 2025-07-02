@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useClinic } from '@/hooks/useClinic';
 import { ArrowLeft, CreditCard, Calendar, Clock, CheckCircle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';

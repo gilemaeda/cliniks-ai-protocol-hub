@@ -1,35 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-// Tipos para o status do plano
-export type PlanStatus = 'TRIAL' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'LOADING';
-export type PlanStatusLabel = 'Em Teste' | 'Ativo' | 'Inativo' | 'Expirado' | 'Carregando...';
-
-interface Clinic {
-  id: string;
-  name: string;
-  cnpj: string;
-  logo_url: string | null;
-  banner_url: string | null;
-  plan: string; // Mantido por retrocompatibilidade, mas a lógica usará PlanStatus
-  trial_ends_at: string | null; // Novo campo para o teste
-  employee_count: number;
-  brand_colors: Record<string, any>;
-  notification_settings: Record<string, any>;
-  owner_id: string;
-}
+import { Clinic, PlanStatus, PlanStatusLabel } from '@/types/clinic';
 
 interface ClinicContextType {
   clinic: Clinic | null;
   loading: boolean;
-  refetchClinic: () => void;
   planStatus: PlanStatus;
   planStatusLabel: PlanStatusLabel;
   trialDaysRemaining: number | null;
+  refetchClinic: () => void;
 }
 
-const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
+export const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -80,32 +63,39 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
 
       if (clinicData) {
-        // 3. Buscar assinatura ativa
-        const { data: subscriptionData } = await supabase
+        // 3. Buscar a última assinatura da clínica para verificar seu status
+        const { data: subscriptionData, error: subError } = await supabase
           .from('subscriptions')
           .select('status')
           .eq('clinic_id', clinicData.id)
-          .in('status', ['ACTIVE', 'CONFIRMED'])
-          .maybeSingle();
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (subError && subError.code !== 'PGRST116') { // Ignora erro 'nenhum resultado encontrado'
+          console.error('Erro ao buscar assinatura:', subError);
+        }
 
         // 4. Determinar o status do plano
         const today = new Date();
         const trialEndDate = clinicData.trial_ends_at ? new Date(clinicData.trial_ends_at) : null;
 
-        if (subscriptionData) {
+        const subStatus = subscriptionData?.status;
+
+        if (subStatus === 'ACTIVE' || subStatus === 'CONFIRMED') {
           setPlanStatus('ACTIVE');
           setPlanStatusLabel('Ativo');
           setTrialDaysRemaining(null);
+        } else if (subStatus === 'PAST_DUE' || subStatus === 'EXPIRED' || subStatus === 'INACTIVE' && trialEndDate && trialEndDate <= today) {
+          setPlanStatus('EXPIRED');
+          setPlanStatusLabel('Expirado');
+          setTrialDaysRemaining(0);
         } else if (trialEndDate && trialEndDate > today) {
           setPlanStatus('TRIAL');
           setPlanStatusLabel('Em Teste');
           const diffTime = trialEndDate.getTime() - today.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           setTrialDaysRemaining(diffDays);
-        } else if (trialEndDate && trialEndDate <= today) {
-          setPlanStatus('EXPIRED');
-          setPlanStatusLabel('Expirado');
-          setTrialDaysRemaining(0);
         } else {
           setPlanStatus('INACTIVE');
           setPlanStatusLabel('Inativo');
@@ -148,10 +138,4 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-export const useClinic = () => {
-  const context = useContext(ClinicContext);
-  if (context === undefined) {
-    throw new Error('useClinic must be used within a ClinicProvider');
-  }
-  return context;
-};
+// O hook useClinic foi movido para src/hooks/useClinic.ts para resolver o erro de lint do Fast Refresh.

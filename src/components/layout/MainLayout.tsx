@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useClinic } from '@/contexts/ClinicContext';
+import { useClinic } from '@/hooks/useClinic';
 
 type MainLayoutProps = {
   children?: React.ReactNode;
