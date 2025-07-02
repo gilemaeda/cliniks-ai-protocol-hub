@@ -200,7 +200,7 @@ const ConfiguracaoClinica = () => {
         name: clinic.name,
         cnpj: clinic.cnpj,
         phone: clinic.phone,
-        email: clinic.email,
+        // Removido o campo email que não existe na tabela clinics
         address: clinic.address,
         city: clinic.city,
         state: clinic.state,
@@ -211,7 +211,7 @@ const ConfiguracaoClinica = () => {
           header: clinic.brand_colors?.header || '#2d133b',
           background: clinic.brand_colors?.background || '#18181b',
         },
-        notification_settings: clinic.notification_settings,
+        // Removido notification_settings que também não existe na tabela
       };
 
       let clinicId = clinic.id;
@@ -333,20 +333,6 @@ const ConfiguracaoClinica = () => {
                   min="1"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="plan">Plano</Label>
-              <Select value={clinic?.plan || ''} onValueChange={(value) => setClinic({ ...clinic, plan: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                  <SelectItem value="prata">Prata</SelectItem>
-                  <SelectItem value="ouro">Ouro</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
 
@@ -548,44 +534,7 @@ const ConfiguracaoClinica = () => {
           </div>
         </Card>
 
-        {/* Notificações */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <span>Configurações de Notificação</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notificações por E-mail</Label>
-                <p className="text-sm text-gray-500">Receber notificações importantes por e-mail</p>
-              </div>
-              <Switch
-                checked={clinic?.notification_settings?.email_notifications || false}
-                onCheckedChange={(checked) => setClinic({
-                  ...clinic,
-                  notification_settings: { ...clinic?.notification_settings, email_notifications: checked }
-                })}
-              />
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notificações por SMS</Label>
-                <p className="text-sm text-gray-500">Receber alertas importantes por SMS</p>
-              </div>
-              <Switch
-                checked={clinic?.notification_settings?.sms_notifications || false}
-                onCheckedChange={(checked) => setClinic({
-                  ...clinic,
-                  notification_settings: { ...clinic?.notification_settings, sms_notifications: checked },
-                })}
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Seção Perfil do Proprietário */}
