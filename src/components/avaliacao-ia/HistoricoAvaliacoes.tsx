@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEvaluationsQuery } from '@/hooks/useEvaluationsQuery';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import HistoricoHeader from './components/HistoricoHeader';
 import SearchBar from './components/SearchBar';

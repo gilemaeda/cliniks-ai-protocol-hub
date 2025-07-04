@@ -8,7 +8,7 @@ import HistoricoProtocolos from '@/components/protocolos/HistoricoProtocolos';
 import ProtocoloEditor from '@/components/protocolos/ProtocoloEditor';
 import ProtocoloManual from '@/components/protocolos/ProtocoloManual';
 import { Protocol, useProtocolosQuery } from '@/hooks/useProtocolosQuery';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 

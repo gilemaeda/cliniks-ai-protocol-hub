@@ -27,6 +27,7 @@ import AssinaturasPage from '@/pages/Assinaturas';
 import AnamnesisDataManager from '@/components/anamnesis/AnamnesisDataManager';
 import ProfessionalLogin from '@/components/auth/ProfessionalLogin';
 import AnamnesisDataForm from '@/components/anamnesis/AnamnesisDataForm';
+import SubscriptionGuard from '@/components/auth/SubscriptionGuard';
 
 const queryClient = new QueryClient();
 
@@ -60,9 +61,11 @@ function App() {
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <Dashboard />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <Dashboard />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -70,9 +73,11 @@ function App() {
                 path="/avaliacao-ia" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <AvaliacaoIA />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <AvaliacaoIA />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -80,9 +85,11 @@ function App() {
                 path="/avaliacao-ia/*" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <AvaliacaoIA />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <AvaliacaoIA />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -90,9 +97,11 @@ function App() {
                 path="/protocolos-personalizados" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <ProtocolosPersonalizados />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <ProtocolosPersonalizados />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -100,9 +109,11 @@ function App() {
                 path="/patients" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <Patients />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <Patients />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -110,9 +121,11 @@ function App() {
                 path="/configuracao-clinica" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <ConfiguracaoClinicaPage />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <ConfiguracaoClinicaPage />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -120,9 +133,11 @@ function App() {
                 path="/configuracao-profissional" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <ConfiguracaoProfissional />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <ConfiguracaoProfissional />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -130,9 +145,11 @@ function App() {
                 path="/central-recursos" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <CentralRecursos />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <CentralRecursos />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -140,9 +157,11 @@ function App() {
                 path="/estatisticas-clinica" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <EstatisticasClinica />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <EstatisticasClinica />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -150,9 +169,11 @@ function App() {
                 path="/chat-ia" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <ChatIA />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <ChatIA />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -160,9 +181,11 @@ function App() {
                 path="/galeria-fotos" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <GaleriaFotosPage />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <GaleriaFotosPage />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -170,9 +193,11 @@ function App() {
                 path="/anamneses" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <AnamnesisDataManager />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <AnamnesisDataManager />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -180,9 +205,11 @@ function App() {
                 path="/anamnese/nova" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <AnamnesisFormWrapper />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <AnamnesisFormWrapper />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
@@ -190,13 +217,15 @@ function App() {
                 path="/anamnese/editar/:id" 
                 element={
                   <ProtectedRoute>
-                    <MainLayout>
-                      <AnamnesisFormWrapper />
-                    </MainLayout>
+                    <SubscriptionGuard>
+                      <MainLayout>
+                        <AnamnesisFormWrapper />
+                      </MainLayout>
+                    </SubscriptionGuard>
                   </ProtectedRoute>
                 } 
               />
-              <Route 
+                            <Route 
                 path="/assinaturas" 
                 element={
                   <ProtectedRoute>
@@ -204,6 +233,14 @@ function App() {
                       <AssinaturasPage />
                     </MainLayout>
                   </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/assinatura" 
+                element={
+                  <ProtectedAdminRoute>
+                    <AssinaturasPage />
+                  </ProtectedAdminRoute>
                 } 
               />
             </Routes>

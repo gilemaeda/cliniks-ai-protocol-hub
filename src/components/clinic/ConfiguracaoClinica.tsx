@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
 import { Upload, Building, Palette, Bell, Save, Loader2 } from 'lucide-react';
 import ConfiguracaoPerfil from '@/components/profile/ConfiguracaoPerfil';

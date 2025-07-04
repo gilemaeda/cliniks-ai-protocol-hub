@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, ArrowLeft } from 'lucide-react';
+import { Building2, Users, ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfiguracaoClinica from '@/components/clinic/ConfiguracaoClinica';
 import GerenciarProfissionais from '@/components/clinic/GerenciarProfissionais';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const ConfiguracaoClinicaPage = () => {
   const navigate = useNavigate();
@@ -31,6 +32,9 @@ const ConfiguracaoClinicaPage = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar ao Dashboard
               </Button>
+              <div className="flex items-center border rounded-full p-1 bg-gray-100 dark:bg-gray-800">
+                <ThemeToggle />
+              </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   Configuração da Clínica

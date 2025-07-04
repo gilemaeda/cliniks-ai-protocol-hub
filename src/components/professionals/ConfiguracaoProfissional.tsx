@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic'; // Importar o hook da clínica
 import { Badge } from '@/components/ui/badge'; // Importar o Badge
 import { ArrowLeft, Save, User, FileText, IdCard, Phone, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const ConfiguracaoProfissional = () => {
   const { user, profile } = useAuth();
@@ -213,7 +213,7 @@ const ConfiguracaoProfissional = () => {
           .from('professionals')
           .update({
             specialty: formData.specialty,
-            birth_date: formData.birth_date,
+            birth_date: formData.birth_date || null,
             equipment_list: formData.equipment_list,
             preferences: formData.preferences,
             cpf: formData.cpf,
@@ -256,31 +256,26 @@ const ConfiguracaoProfissional = () => {
           <img src={clinic.banner_url && clinic.banner_url.startsWith('http') ? clinic.banner_url : `https://rpfrmclsraiidjlfeonj.supabase.co/storage/v1/object/public/clinic-assets/${clinic.banner_url}`} alt="Banner da Clínica" className="w-full h-full object-cover" />
         </div>
       )}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between">
-            <div className="flex items-end space-x-4">
-              {clinic?.logo_url && (
-                <img 
-                  src={clinic.logo_url && clinic.logo_url.startsWith('http') ? clinic.logo_url : `https://rpfrmclsraiidjlfeonj.supabase.co/storage/v1/object/public/clinic-assets/${clinic.logo_url}`}
-                  alt="Logo da Clínica" 
-                  className="h-24 w-24 rounded-full object-cover border-4 border-white dark:border-gray-800 -mt-12" 
-                />
-              )}
-              <div className="pb-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {clinic ? clinic.clinic_name : 'Carregando Clínica...'}
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Configuração do Perfil Profissional
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar ao Dashboard
+              </Button>
+              {/* Botão de alternância de tema */}
+              <div className="flex items-center border rounded-full p-1 bg-gray-100 dark:bg-gray-800">
+                <ThemeToggle />
               </div>
             </div>
-            <Button onClick={() => navigate(-1)} variant="outline" className="mt-4 md:mt-0 self-start md:self-auto">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {clinic ? clinic.clinic_name : 'Carregando Clínica...'}
+            </h1>
           </div>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Configuração do Perfil Profissional
+          </p>
         </div>
 
         <div className="space-y-6">
@@ -412,8 +407,8 @@ const ConfiguracaoProfissional = () => {
                       placeholder="000.000.000-00"
                       className={errors.cpf ? 'border-red-500' : ''}
                     />
-                    {errors.cpf && <p className="text-xs text-red-500 mt-1">{errors.cpf}</p>}
                   </div>
+                  {errors.cpf && <p className="text-xs text-red-500 mt-1">{errors.cpf}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -437,8 +432,8 @@ const ConfiguracaoProfissional = () => {
                       placeholder="(00) 00000-0000"
                       className={errors.phone ? 'border-red-500' : ''}
                     />
-                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                   </div>
+                  {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                 </div>
               </div>
             </CardContent>

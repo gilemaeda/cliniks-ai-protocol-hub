@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 export const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(false);
@@ -29,7 +29,7 @@ export const ThemeToggle = () => {
 
   return (
     <Button variant="ghost" size="sm" onClick={toggleTheme}>
-      <Settings className="h-4 w-4" />
+      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
       <span className="sr-only">Alternar tema</span>
     </Button>
   );

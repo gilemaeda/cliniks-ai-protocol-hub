@@ -1,145 +1,197 @@
-
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
-import { AuthState, AuthActions, Profile } from './auth/types';
+import { Session, User } from '@supabase/supabase-js';
+import { Profile } from './auth/types';
 import { authService } from './auth/authService';
 import { profileService } from './auth/profileService';
 import { clinicService } from './auth/clinicService';
+import { AuthContext } from './auth/authContext';
 
-export * from './auth/types';
+// Flag global para evitar múltiplas inicializações
+let isInitializing = false;
 
-const AuthContext = createContext<(AuthState & AuthActions) | undefined>(undefined);
+// Funções para persistência local
+const LOCAL_STORAGE_KEYS = {
+  SESSION: 'cliniks_session',
+  USER: 'cliniks_user',
+  PROFILE: 'cliniks_profile',
+  SUBSCRIPTION: 'cliniks_subscription',
+  LAST_UPDATED: 'cliniks_auth_last_updated'
+};
+
+const saveToLocalStorage = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving to localStorage (${key}):`, error);
+  }
+};
+
+const getFromLocalStorage = (key: string) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+  } catch (error) {
+    console.error(`Error reading from localStorage (${key}):`, error);
+    return null;
+  }
+};
+
+// Tempo máximo de cache em minutos
+const MAX_CACHE_AGE_MINUTES = 30;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  // Inicializar estados com dados do localStorage se disponíveis
+  const [session, setSession] = useState<Session | null>(() => getFromLocalStorage(LOCAL_STORAGE_KEYS.SESSION));
+  const [user, setUser] = useState<User | null>(() => getFromLocalStorage(LOCAL_STORAGE_KEYS.USER));
+  const [profile, setProfile] = useState<Profile | null>(() => getFromLocalStorage(LOCAL_STORAGE_KEYS.PROFILE));
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>('TRIAL'); // Forçar TRIAL para quebrar o loop
   const [loading, setLoading] = useState(true);
+  const initRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Versão simplificada para inicializar a sessão uma única vez
+  const initializeAuth = useCallback(async () => {
+    // Evitar múltiplas inicializações
+    if (isInitializing) {
+      console.log('Já está inicializando em outro componente');
+      return;
+    }
     
-    const initializeAuth = async () => {
-      try {
-        // Verificar sessão existente primeiro
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+    isInitializing = true;
+    console.log('Inicializando autenticação - versão simplificada');
+    
+    try {
+      // Obter sessão atual
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession?.user) {
+        console.log('Sessão encontrada');
+        setSession(currentSession);
+        setUser(currentSession.user);
+        saveToLocalStorage(LOCAL_STORAGE_KEYS.SESSION, currentSession);
+        saveToLocalStorage(LOCAL_STORAGE_KEYS.USER, currentSession.user);
         
-        if (currentSession && isMounted) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          
-          // Buscar perfil de forma assíncrona e mais rápida
-          const profilePromise = profileService.fetchProfile(currentSession.user.id);
-          
-          profilePromise
-            .then(profileData => {
-              if (isMounted && profileData) {
-                setProfile(profileData);
-                
-                // Garantir clínica para proprietários (em background)
-                if (profileData.role === 'clinic_owner') {
-                  clinicService.ensureClinicExists(currentSession.user.id, profileData.full_name)
-                    .catch(error => console.error('Error ensuring clinic:', error));
-                }
-              }
-            })
-            .catch(error => console.error('Error fetching profile:', error));
-          
-          // Definir loading como false imediatamente após ter usuário
-          if (isMounted) setLoading(false);
-        } else {
-          if (isMounted) setLoading(false);
+        try {
+          const profileData = await profileService.fetchProfile(currentSession.user.id);
+          if (profileData) {
+            console.log('Perfil encontrado');
+            setProfile(profileData);
+            saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, profileData);
+            
+            // Forçar status TRIAL para evitar loops
+            setSubscriptionStatus('TRIAL');
+            saveToLocalStorage(LOCAL_STORAGE_KEYS.SUBSCRIPTION, 'TRIAL');
+          }
+        } catch (error) {
+          console.error('Erro ao carregar perfil:', error);
         }
-      } catch (error) {
-        console.error('Error in initializeAuth:', error);
-        if (isMounted) setLoading(false);
+      } else {
+        console.log('Nenhuma sessão encontrada');
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setSubscriptionStatus(null);
       }
-    };
+    } catch (error) {
+      console.error('Erro ao inicializar autenticação:', error);
+    } finally {
+      setLoading(false);
+      isInitializing = false;
+    }
+  }, []);
 
-    // Configurar listener de mudanças de estado
+  // Efeito simplificado - inicializa apenas uma vez
+  useEffect(() => {
+    // Evitar inicialização duplicada
+    if (initRef.current) {
+      return;
+    }
+    
+    initRef.current = true;
+    initializeAuth();
+    
+    // Escutar mudanças de autenticação - simplificado
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        if (!isMounted) return;
-        
-        if (event === 'SIGNED_OUT') {
+      (_event, newSession) => {
+        if (newSession?.user) {
+          setSession(newSession);
+          setUser(newSession.user);
+          saveToLocalStorage(LOCAL_STORAGE_KEYS.SESSION, newSession);
+          saveToLocalStorage(LOCAL_STORAGE_KEYS.USER, newSession.user);
+        } else {
           setSession(null);
           setUser(null);
           setProfile(null);
-          setLoading(false);
-          return;
-        }
-        
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          setLoading(false); // Definir loading como false imediatamente
-          
-          // Buscar perfil de forma assíncrona
-          profileService.fetchProfile(currentSession.user.id)
-            .then(profileData => {
-              if (isMounted && profileData) {
-                setProfile(profileData);
-                
-                if (profileData.role === 'clinic_owner') {
-                  clinicService.ensureClinicExists(currentSession.user.id, profileData.full_name)
-                    .catch(error => console.error('Error ensuring clinic:', error));
-                }
-              }
-            })
-            .catch(error => console.error('Error fetching profile:', error));
+          setSubscriptionStatus(null);
         }
       }
     );
-
-    // Inicializar autenticação
-    initializeAuth();
-
+    
     return () => {
-      isMounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, []);
+  }, [initializeAuth]);
 
   const signOut = async () => {
+    setLoading(true);
+    
+    // Limpar localStorage
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.SESSION);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.PROFILE);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.SUBSCRIPTION);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.LAST_UPDATED);
+    
+    const { error } = await authService.signOut();
+    if (error) {
+      console.error('Error during signOut:', error);
+    }
+    
+    // Limpar estados
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setSubscriptionStatus(null);
+    setLoading(false);
+    
+    return { error };
+  };
+
+  // Função para atualizar manualmente o status da assinatura
+  const refreshSubscriptionStatus = useCallback(async () => {
+    if (!profile?.clinic_id) {
+      console.log('refreshSubscriptionStatus: Sem clínica associada ao perfil');
+      return;
+    }
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      setUser(null);
-      setProfile(null);
-      setSession(null);
+      const status = await clinicService.fetchSubscriptionStatus(profile.clinic_id);
+      console.log('refreshSubscriptionStatus: Novo status obtido:', status);
       
-      const { error } = await authService.signOut();
-      if (error) {
-        console.error('Error during signOut:', error);
-        return { error };
-      }
+      setSubscriptionStatus(status);
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.SUBSCRIPTION, status);
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.LAST_UPDATED, new Date().toISOString());
       
-      return { error: null };
+      return status;
     } catch (error) {
-      console.error('SignOut failed:', error);
-      return { error };
+      console.error('refreshSubscriptionStatus: Erro ao atualizar status:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.clinic_id]);
 
   const value = {
     user,
     session,
     profile,
     loading,
+    subscriptionStatus,
     signUp: authService.signUp,
     signIn: authService.signIn,
-    signOut
+    signOut,
+    refreshSubscriptionStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = (): AuthState & AuthActions => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -146,9 +146,9 @@ const ProfessionalDashboard = () => {
 
   // Aplicar cores da clínica se disponível
   const clinicColors = clinic?.brand_colors || {};
-  const primaryColor = clinicColors.primary || '#3b82f6';
-  const secondaryColor = clinicColors.secondary || '#6366f1';
-  const textColor = clinicColors.text || '#1f2937';
+  const primaryColor = clinicColors.primary || '#7f00fa';
+  const secondaryColor = clinicColors.secondary || '#fb0082';
+  const textColor = clinicColors.text || '#424242';
   const backgroundColor = clinicColors.background || '#f9fafb';
   const bannerUrl = clinic?.banner_url || '/default-banner.jpg';
 
@@ -198,51 +198,51 @@ const ProfessionalDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-[#424242]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avaliações</CardTitle>
-              <Brain className="h-4 w-4 text-muted-foreground" />
+              <Brain className="h-4 w-4 text-[#7f00fa]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.assessments}</div>
-              <p className="text-xs text-muted-foreground">Avaliações realizadas</p>
+              <div className="text-2xl font-bold text-[#424242]">{stats.assessments}</div>
+              <p className="text-xs text-[#424242]/70">Avaliações realizadas</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pacientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-[#fb0082]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.patients}</div>
-              <p className="text-xs text-muted-foreground">Pacientes atendidos</p>
+              <div className="text-2xl font-bold text-[#424242]">{stats.patients}</div>
+              <p className="text-xs text-[#424242]/70">Pacientes atendidos</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Fotos</CardTitle>
-              <Camera className="h-4 w-4 text-muted-foreground" />
+              <Camera className="h-4 w-4 text-[#7f00fa]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.photos}</div>
-              <p className="text-xs text-muted-foreground">Fotos cadastradas</p>
+              <div className="text-2xl font-bold text-[#424242]">{stats.photos}</div>
+              <p className="text-xs text-[#424242]/70">Fotos cadastradas</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Protocolos</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-[#fb0082]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.protocols}</div>
-              <p className="text-xs text-muted-foreground">Protocolos disponíveis</p>
+              <div className="text-2xl font-bold text-[#424242]">{stats.protocols}</div>
+              <p className="text-xs text-[#424242]/70">Protocolos disponíveis</p>
             </CardContent>
           </Card>
         </div>

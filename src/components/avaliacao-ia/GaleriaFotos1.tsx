@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Camera, Search, Filter, Eye, Calendar, User, MapPin, Plus, AlertCircle, ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,6 +34,7 @@ interface Patient {
 const GaleriaFotos = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState<PatientPhoto[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,12 +43,7 @@ const GaleriaFotos = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [selectedPhoto, setSelectedPhoto] = useState<PatientPhoto | null>(null);
 
-  useEffect(() => {
-    fetchPhotos();
-    fetchPatients();
-  }, [user]);
-
-  const fetchPhotos = async () => {
+  const fetchPhotos = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -109,9 +106,9 @@ const GaleriaFotos = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -134,8 +131,18 @@ const GaleriaFotos = () => {
       }
     } catch (error) {
       console.error('Erro ao buscar pacientes:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a lista de pacientes.",
+        variant: "destructive"
+      });
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    fetchPhotos();
+    fetchPatients();
+  }, [fetchPhotos, fetchPatients]);
 
   const filteredPhotos = photos.filter(photo => {
     const matchesSearch = photo.patients?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,7 +288,7 @@ const GaleriaFotos = () => {
                 : "Nenhuma foto corresponde aos filtros aplicados."
               }
             </p>
-            <Button onClick={() => window.location.href = '/patients'}>
+            <Button onClick={() => navigate('/patients')}>
               <Plus className="h-4 w-4 mr-2" />
               Gerenciar Pacientes
             </Button>

@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FileText, Upload, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import AnamnesisDataList from './AnamnesisDataList';
 import AnamnesisDataForm from './AnamnesisDataForm';
 import AnamnesisUpload from './AnamnesisUpload';
@@ -75,7 +75,8 @@ const AnamnesisDataManager = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Erro ao navegar:', error);
-      window.location.href = '/dashboard';
+      // Tenta navegar novamente com um pequeno atraso
+      setTimeout(() => navigate('/dashboard'), 100);
     }
   };
 

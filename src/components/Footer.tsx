@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 
 const Footer = () => {
   return (
-    <footer id="contact" className="bg-muted/50 py-12 border-t">
+    <footer id="contact" className="bg-[#424242]/5 py-12 border-t">
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
@@ -15,49 +15,49 @@ const Footer = () => {
                 Cliniks IA Portal
               </span>
             </div>
-            <p className="text-muted-foreground mb-4 max-w-md">
-              A plataforma completa para modernizar sua clínica estética com 
-              inteligência artificial e ferramentas profissionais.
+            <p className="text-[#424242]/80 mb-4 max-w-md">
+            O Cliniks IA é um portal completo que oferece ferramentas de inteligência artificial 
+            para avaliações inteligentes, criação de protocolos personalizados e suporte integral aos profissionais de estética em sua rotina clínica.
             </p>
             <div className="flex space-x-4">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-[#7f00fa] text-[#7f00fa] hover:bg-[#7f00fa]/10">
                 WhatsApp
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-[#fb0082] text-[#fb0082] hover:bg-[#fb0082]/10">
                 Email
               </Button>
             </div>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">Produto</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">Funcionalidades</a></li>
-              <li><a href="#" className="hover:text-primary">Planos</a></li>
-              <li><a href="#" className="hover:text-primary">API</a></li>
-              <li><a href="#" className="hover:text-primary">Segurança</a></li>
+            <h3 className="font-semibold mb-4 text-[#424242]">Produto</h3>
+            <ul className="space-y-2 text-sm text-[#424242]/80">
+              <li><a href="#" className="hover:text-[#7f00fa]">Funcionalidades</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">Planos</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">API</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">Segurança</a></li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">Empresa</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary">Sobre nós</a></li>
-              <li><a href="#" className="hover:text-primary">Blog</a></li>
-              <li><a href="#" className="hover:text-primary">Carreiras</a></li>
-              <li><a href="#" className="hover:text-primary">Contato</a></li>
+            <h3 className="font-semibold mb-4 text-[#424242]">Empresa</h3>
+            <ul className="space-y-2 text-sm text-[#424242]/80">
+              <li><a href="#" className="hover:text-[#7f00fa]">Sobre nós</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">Blog</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">Carreiras</a></li>
+              <li><a href="#" className="hover:text-[#7f00fa]">Contato</a></li>
             </ul>
           </div>
         </div>
         
         <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[#424242]/80">
             © 2024 Cliniks IA Portal. Todos os direitos reservados.
           </p>
-          <div className="flex space-x-6 mt-4 md:mt-0 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-primary">Termos</a>
-            <a href="#" className="hover:text-primary">Privacidade</a>
-            <a href="#" className="hover:text-primary">Cookies</a>
+          <div className="flex space-x-6 mt-4 md:mt-0 text-sm text-[#424242]/80">
+            <a href="#" className="hover:text-[#7f00fa]">Termos</a>
+            <a href="#" className="hover:text-[#7f00fa]">Privacidade</a>
+            <a href="#" className="hover:text-[#7f00fa]">Cookies</a>
           </div>
         </div>
       </div>

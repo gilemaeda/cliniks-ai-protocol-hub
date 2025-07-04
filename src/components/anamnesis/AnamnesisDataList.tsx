@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { PatientAnamnesisData, Patient, AnamnesisFilters } from '@/types/anamnesis';
 import { Search, Eye, FileText, User, Calendar, Filter, Download, Edit, Copy, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

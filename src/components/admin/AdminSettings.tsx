@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
+import { useSessionSync } from '@/hooks/useSessionSync';
 
 interface AdminUser {
   id: string;
@@ -37,37 +38,109 @@ const AdminSettings = () => {
   // Estados para configuração do webhook
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookLoading, setWebhookLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
 
-  // Função para buscar a configuração do webhook do n8n
+  // Referência para controlar se o componente está montado
+  const isMounted = useRef(true);
+  
+  // Função para verificar a sessão atual
+  const checkSession = useCallback(async () => {
+    try {
+      // Verificar autenticação administrativa usando localStorage
+      // (mesma lógica usada no ProtectedAdminRoute)
+      const adminAuth = localStorage.getItem('cliniks_admin_auth');
+      const adminDataStr = localStorage.getItem('cliniks_admin_data');
+      
+      if (adminAuth !== 'authenticated' || !adminDataStr) {
+        console.warn('Sessão administrativa não encontrada ou expirada');
+        return false;
+      }
+      
+      // Verificar se os dados do admin são válidos
+      try {
+        const adminData = JSON.parse(adminDataStr);
+        if (!adminData || !adminData.email) {
+          console.warn('Dados administrativos inválidos');
+          return false;
+        }
+        console.log('Sessão administrativa válida:', adminData.email);
+        return true;
+      } catch (e) {
+        console.error('Erro ao processar dados administrativos:', e);
+        return false;
+      }
+    } catch (err) {
+      console.error('Erro ao verificar sessão administrativa:', err);
+      return false;
+    }
+  }, []);
+  
+  // Sincronização de sessão entre abas
+  useSessionSync(() => {
+    console.log('Mudança de sessão detectada, recarregando dados...');
+    if (isMounted.current) {
+      fetchWebhookConfig();
+    }
+  });
+  
+  // Função para buscar a configuração do webhook do n8n diretamente da tabela
   const fetchWebhookConfig = useCallback(async () => {
     setWebhookLoading(true);
     try {
-      // Buscar todos os registros e filtrar pelo key no código
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('*')
-        .eq('key', 'n8n_webhook_url');
-
-      if (error) throw error;
+      // Verificar autenticação administrativa usando localStorage
+      const adminAuth = localStorage.getItem('cliniks_admin_auth');
+      const adminDataStr = localStorage.getItem('cliniks_admin_data');
       
-      // Se encontrou algum registro, use o primeiro
-      if (data && data.length > 0) {
-        setWebhookUrl(data[0].value || '');
+      if (adminAuth !== 'authenticated' || !adminDataStr) {
+        throw new Error('Sessão administrativa inválida ou expirada');
+      }
+      
+      // Verificar se os dados do admin são válidos
+      const adminData = JSON.parse(adminDataStr);
+      if (!adminData || !adminData.email) {
+        throw new Error('Dados administrativos inválidos');
+      }
+      
+      // Verificar se o email é gilemaeda@gmail.com (admin master) ou um admin válido
+      if (adminData.email === "gilemaeda@gmail.com" || adminData.is_master) {
+        // É o admin master, continuar
+        console.log("Admin master verificado:", adminData.email);
       } else {
-        // Se não encontrou, crie o registro
+        console.log("Admin não é master, mas está autenticado:", adminData.email);
+      }
+      
+      // Buscar configuração diretamente da tabela
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("*")
+        .eq("key", "n8n_webhook_url")
+        .maybeSingle();
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao buscar configuração');
+      }
+      
+      // Se encontrou a configuração, use-a
+      if (data) {
+        setWebhookUrl(data.value || '');
+      } else {
+        // Se não encontrou, crie a configuração com valor vazio
         console.log('Registro de webhook não encontrado, criando...');
+        
         const { error: insertError } = await supabase
-          .from('system_settings')
+          .from("system_settings")
           .insert({
-            key: 'n8n_webhook_url',
-            value: '',
-            description: 'URL do webhook do n8n para integração com o sistema'
+            key: "n8n_webhook_url",
+            value: "",
+            description: "Configuração para n8n_webhook_url"
           });
-          
+        
         if (insertError) {
-          console.error('Erro ao criar registro de webhook:', insertError);
-          throw insertError;
+          console.error('Erro ao criar registro de webhook:', insertError.message);
+          throw new Error(insertError.message || 'Erro ao criar configuração');
         }
         
         setWebhookUrl('');
@@ -76,7 +149,7 @@ const AdminSettings = () => {
       console.error('Erro ao buscar configuração do webhook:', error);
       toast({
         title: "Erro ao carregar configuração do webhook",
-        description: "Não foi possível carregar a configuração do webhook do n8n",
+        description: error instanceof Error ? error.message : "Não foi possível carregar a configuração do webhook do n8n",
         variant: "destructive"
       });
     } finally {
@@ -84,20 +157,99 @@ const AdminSettings = () => {
     }
   }, [toast]);
 
-  // Função para salvar a configuração do webhook do n8n
-  const saveWebhookConfig = async () => {
-    setWebhookLoading(true);
-    try {
-      const { error } = await supabase
-        .from('system_settings')
-        .update({ value: webhookUrl })
-        .eq('key', 'n8n_webhook_url');
+  // Função para salvar a configuração do webhook
+  const saveWebhookConfig = useCallback(async () => {
+    // Verificar sessão antes de salvar
+    const sessionValid = await checkSession();
+    if (!sessionValid) {
+      toast({
+        title: "Sessão expirada",
+        description: "Sua sessão expirou ou é inválida. Por favor, faça login novamente.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      if (error) throw error;
+    if (!webhookUrl.trim()) {
+      toast({
+        title: "URL inválida",
+        description: "Por favor, insira uma URL válida para o webhook",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Verificar se o usuário atual é admin
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Sessão inválida ou expirada');
+      }
+      
+      // Verificar se o email é gilemaeda@gmail.com (admin master)
+      if (user.email === "gilemaeda@gmail.com") {
+        // É o admin master, continuar
+        console.log("Admin master verificado:", user.email);
+      } else {
+        console.log("Verificando se é admin na tabela admin_users:", user.email);
+        // Para outros usuários, verificar na tabela admin_users
+        try {
+          const { data: adminData, error: adminError } = await supabase
+            .from("admin_users")
+            .select()
+            .eq("email", user.email);
+
+          console.log("Resultado da consulta admin_users:", { adminData, adminError });
+
+          if (adminError) {
+            console.error("Erro ao verificar admin:", adminError);
+            throw new Error('Erro ao verificar permissões de administrador');
+          }
+
+          if (!adminData || adminData.length === 0) {
+            throw new Error('Usuário não é um administrador');
+          }
+        } catch (err) {
+          console.error("Erro na verificação de admin:", err);
+          throw new Error('Erro ao verificar permissões de administrador');
+        }
+      }
+      
+      // Verificar se a configuração já existe
+      const { data: existingData, error: checkError } = await supabase
+        .from("system_settings")
+        .select("id")
+        .eq("key", "n8n_webhook_url")
+        .maybeSingle();
+
+      let result;
+      
+      if (existingData) {
+        // Atualizar configuração existente
+        result = await supabase
+          .from("system_settings")
+          .update({ value: webhookUrl })
+          .eq("key", "n8n_webhook_url");
+      } else {
+        // Criar nova configuração
+        result = await supabase
+          .from("system_settings")
+          .insert({
+            key: "n8n_webhook_url",
+            value: webhookUrl,
+            description: `Configuração para n8n_webhook_url`
+          });
+      }
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Erro ao salvar configuração');
+      }
       
       toast({
         title: "Configuração salva",
-        description: "A URL do webhook do n8n foi atualizada com sucesso",
+        description: "A URL do webhook foi salva com sucesso",
         variant: "default"
       });
       
@@ -106,17 +258,28 @@ const AdminSettings = () => {
       console.error('Erro ao salvar configuração do webhook:', error);
       toast({
         title: "Erro ao salvar configuração",
-        description: "Não foi possível salvar a configuração do webhook do n8n",
+        description: error instanceof Error ? error.message : "Não foi possível salvar a configuração do webhook",
         variant: "destructive"
       });
     } finally {
-      setWebhookLoading(false);
+      setSaving(false);
     }
-  };
+  }, [webhookUrl, toast, setIsWebhookDialogOpen, checkSession]);
 
   // Função para buscar administradores
   const fetchAdminUsers = useCallback(async () => {
     try {
+      // Verificar sessão antes de buscar dados
+      const sessionValid = await checkSession();
+      if (!sessionValid) {
+        toast({
+          title: "Sessão expirada",
+          description: "Sua sessão expirou ou é inválida. Por favor, faça login novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -137,13 +300,58 @@ const AdminSettings = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, checkSession]);
 
   // Efeito para carregar dados iniciais
   useEffect(() => {
-    fetchAdminUsers();
-    fetchWebhookConfig();
-  }, [fetchAdminUsers, fetchWebhookConfig]);
+    // Definir função para buscar administradores dentro do useEffect
+    // para evitar problemas de escopo e hot reload
+    const loadAdminUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setAdminUsers(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar administradores:', error);
+        toast({
+          title: "Erro ao carregar administradores",
+          description: "Não foi possível carregar a lista de administradores",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Verificar sessão antes de carregar dados
+    const initializeData = async () => {
+      const sessionValid = await checkSession();
+      if (sessionValid) {
+        fetchWebhookConfig();
+        loadAdminUsers();
+      } else {
+        toast({
+          title: "Sessão expirada",
+          description: "Sua sessão expirou ou é inválida. Por favor, faça login novamente.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    initializeData();
+    
+    // Cleanup quando o componente for desmontado
+    return () => {
+      isMounted.current = false;
+    };
+  }, [fetchWebhookConfig, checkSession, toast]);
 
   const createAdmin = async () => {
     try {
@@ -506,6 +714,56 @@ const AdminSettings = () => {
                     onChange={(e) => setWebhookUrl(e.target.value)}
                   />
                 </div>
+                
+                {/* Botão de teste do webhook */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right">
+                    <span className="text-sm text-gray-500">Testar</span>
+                  </div>
+                  <div className="col-span-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={testWebhook} 
+                      disabled={testingWebhook || !webhookUrl}
+                      className="w-full"
+                    >
+                      {testingWebhook ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Testando...
+                        </>
+                      ) : (
+                        <>Testar Webhook</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Resultado do teste */}
+                {testResult && (
+                  <div className="col-span-4">
+                    <div className={`p-3 rounded-md ${testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                      <div className="flex items-center">
+                        {testResult.success ? (
+                          <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                        <span className={`text-sm ${testResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                          {testResult.message}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">Sobre o Webhook do n8n</h4>
@@ -514,6 +772,7 @@ const AdminSettings = () => {
                   <li>Dados enviados no webhook: ID da clínica, nome da clínica, ID da assinatura, status da assinatura, data de vencimento e informações do proprietário.</li>
                   <li>Use o n8n para automatizar ações como envio de e-mails de boas-vindas, lembretes de pagamento ou notificações de expiração.</li>
                   <li>A URL deve apontar para um endpoint válido do n8n configurado para receber webhooks.</li>
+                  <li><strong>Teste do webhook:</strong> Envia uma requisição de teste para verificar se o endpoint está configurado corretamente e respondendo.</li>
                 </ul>
               </div>
               <DialogFooter>

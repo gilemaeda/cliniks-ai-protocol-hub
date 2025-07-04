@@ -1,5 +1,5 @@
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useAccessControl } from '@/hooks/useAccessControl';
 import { Navigate, useLocation } from 'react-router-dom';
 

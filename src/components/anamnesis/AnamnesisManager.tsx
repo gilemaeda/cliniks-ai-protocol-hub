@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FileText, History, Settings, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import AnamnesisTemplatesList from './AnamnesisTemplatesList';
 import PatientAnamnesisForm from './PatientAnamnesisForm';
 import AnamnesisHistory from './AnamnesisHistory';

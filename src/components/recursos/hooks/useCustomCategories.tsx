@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 
 export const useCustomCategories = (resourceType: 'equipment' | 'cosmetic' | 'injectable') => {
   const { user } = useAuth();

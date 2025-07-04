@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { PatientAnamnesisData } from '@/types/anamnesis';
 import { Search, Eye, FileText, User, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -20,7 +20,7 @@ const AnamnesisHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAnamnesis, setSelectedAnamnesis] = useState<PatientAnamnesisData | null>(null);
 
-  const fetchAnamnesis = async () => {
+  const fetchAnamnesis = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -38,13 +38,13 @@ const AnamnesisHistory = () => {
       const convertedAnamnesis: PatientAnamnesisData[] = (data || []).map(item => ({
         ...item,
         anamnesis_type: item.anamnesis_type as 'facial' | 'corporal' | 'capilar' | 'geral',
-        data: typeof item.data === 'object' && item.data !== null ? item.data as Record<string, any> : {},
-        general_health: typeof item.general_health === 'object' && item.general_health !== null ? item.general_health as Record<string, any> : {},
-        lifestyle: typeof item.lifestyle === 'object' && item.lifestyle !== null ? item.lifestyle as Record<string, any> : {},
-        facial_assessment: typeof item.facial_assessment === 'object' && item.facial_assessment !== null ? item.facial_assessment as Record<string, any> : {},
-        body_assessment: typeof item.body_assessment === 'object' && item.body_assessment !== null ? item.body_assessment as Record<string, any> : {},
-        body_measurements: typeof item.body_measurements === 'object' && item.body_measurements !== null ? item.body_measurements as Record<string, any> : {},
-        hair_assessment: typeof item.hair_assessment === 'object' && item.hair_assessment !== null ? item.hair_assessment as Record<string, any> : {}
+        data: typeof item.data === 'object' && item.data !== null ? item.data as Record<string, unknown> : {},
+        general_health: typeof item.general_health === 'object' && item.general_health !== null ? item.general_health as Record<string, unknown> : {},
+        lifestyle: typeof item.lifestyle === 'object' && item.lifestyle !== null ? item.lifestyle as Record<string, unknown> : {},
+        facial_assessment: typeof item.facial_assessment === 'object' && item.facial_assessment !== null ? item.facial_assessment as Record<string, unknown> : {},
+        body_assessment: typeof item.body_assessment === 'object' && item.body_assessment !== null ? item.body_assessment as Record<string, unknown> : {},
+        body_measurements: typeof item.body_measurements === 'object' && item.body_measurements !== null ? item.body_measurements as Record<string, unknown> : {},
+        hair_assessment: typeof item.hair_assessment === 'object' && item.hair_assessment !== null ? item.hair_assessment as Record<string, unknown> : {}
       }));
 
       setAnamnesis(convertedAnamnesis);
@@ -58,11 +58,11 @@ const AnamnesisHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
     fetchAnamnesis();
-  }, [user]);
+  }, [fetchAnamnesis]);
 
   const filteredAnamnesis = anamnesis.filter(item =>
     item.patient?.full_name.toLowerCase().includes(searchTerm.toLowerCase())

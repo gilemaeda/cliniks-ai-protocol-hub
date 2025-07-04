@@ -1,0 +1,29 @@
+{
+  "short_name": "Cliniks IA",
+  "name": "Cliniks AI Protocol Hub",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#7f00fa",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "categories": ["healthcare", "productivity", "business"],
+  "description": "Plataforma completa para gestão de clínicas estéticas com avaliação inteligente e protocolos personalizados",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "capture_links": "existing-client-navigate",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "id": "/"
+}

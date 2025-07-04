@@ -3,20 +3,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Brain, History, Settings, ArrowLeft } from 'lucide-react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { usePageState } from '@/hooks/usePageState';
+import { usePersistentState } from '@/hooks/usePersistentState';
+import { useToast } from '@/hooks/use-toast';
 import NovaAvaliacao from '@/components/avaliacao-ia/NovaAvaliacao';
 import HistoricoAvaliacoes from '@/components/avaliacao-ia/HistoricoAvaliacoes';
 import ConfiguracoesProfissional from '@/components/avaliacao-ia/ConfiguracoesProfissional';
 import FormularioAvaliacao from '@/components/avaliacao-ia/FormularioAvaliacao';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 const AvaliacaoIA = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState('nova-avaliacao');
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const params = useParams();
+  const { restoreState } = usePageState();
+  const { toast } = useToast();
+  
+  // Usar o hook usePersistentState para persistir a aba ativa
+  const [activeTab, setActiveTab, clearActiveTab] = usePersistentState<string>(
+    'cliniks_avaliacao_tab',
+    'nova-avaliacao'
+  );
 
   // Verificar se há um tipo específico de avaliação na URL via parâmetro de rota
   const assessmentTypeFromRoute = params['*'] as 'facial' | 'corporal' | 'capilar' | null;
@@ -32,17 +43,72 @@ const AvaliacaoIA = () => {
   const isCloneMode = searchParams.get('clone') === 'true';
   const assessmentId = searchParams.get('id');
 
+  // Função para atualizar a aba ativa e os parâmetros de URL sem recarregar a página
+  const handleTabChange = useCallback((value: string) => {
+    // Atualizar o estado persistente (isso já salva no localStorage)
+    setActiveTab(value);
+    
+    // Atualizar os parâmetros de URL sem recarregar a página
+    setSearchParams({ tab: value }, { replace: true });
+    
+    // Se estiver navegando para a aba de histórico, invalidar a query de avaliações
+    if (value === 'historico' && user?.id) {
+      queryClient.invalidateQueries({ queryKey: ['assessments', user.id] });
+    }
+  }, [setActiveTab, setSearchParams, queryClient, user?.id]);
+  
+  // Função para lidar com a restauração da página do BFCache
+  const handlePageShow = useCallback((event: PageTransitionEvent) => {
+    if (event.persisted) {
+      console.log('Página de Avaliação IA restaurada do BFCache');
+      toast({
+        title: 'Página restaurada',
+        description: 'Seu estado foi recuperado automaticamente.',
+        variant: 'default',
+      });
+      
+      // O estado da aba já é restaurado automaticamente pelo usePersistentState
+      
+      // Se estiver na aba de histórico, invalidar a query de avaliações
+      if (activeTab === 'historico' && user?.id) {
+        queryClient.invalidateQueries({ queryKey: ['assessments', user.id] });
+      }
+    }
+  }, [activeTab, toast, queryClient, user?.id]);
+  
+  // Sincronizar o estado local com os parâmetros de URL ao carregar a página
   useEffect(() => {
+    // Primeiro verificar se há um parâmetro de URL
     const tab = searchParams.get('tab');
+    
     if (tab) {
+      // Se há um parâmetro na URL, ele tem prioridade
       setActiveTab(tab);
       
       // Se estiver navegando para a aba de histórico, invalidar a query de avaliações
       if (tab === 'historico' && user?.id) {
         queryClient.invalidateQueries({ queryKey: ['assessments', user.id] });
       }
+    } else {
+      // Se não houver parâmetro na URL, usar o valor do estado persistente (já carregado do localStorage)
+      // e atualizar a URL para refletir esse estado
+      setSearchParams({ tab: activeTab }, { replace: true });
+      
+      // Se estiver restaurando para a aba de histórico, invalidar a query de avaliações
+      if (activeTab === 'historico' && user?.id) {
+        queryClient.invalidateQueries({ queryKey: ['assessments', user.id] });
+      }
     }
-  }, [searchParams, queryClient, user?.id]);
+  }, [activeTab, queryClient, searchParams, setActiveTab, setSearchParams, user?.id]);
+  
+  // Adicionar e remover o event listener para pageshow
+  useEffect(() => {
+    window.addEventListener('pageshow', handlePageShow);
+    
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [handlePageShow]);
 
   // Se há um tipo específico, ir direto para o formulário
   if (assessmentType && ['facial', 'corporal', 'capilar'].includes(assessmentType)) {
@@ -120,7 +186,7 @@ const AvaliacaoIA = () => {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className={`grid w-full ${profile?.role === 'professional' ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="nova-avaliacao" className="flex items-center space-x-2">
               <Brain className="h-4 w-4" />

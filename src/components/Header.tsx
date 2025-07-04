@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { User, Settings, LogOut, Menu, X, Shield } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useClinic } from '@/hooks/useClinic';
@@ -63,13 +63,13 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
+          <a href="#features" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
             Funcionalidades
           </a>
-          <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">
+          <a href="#pricing" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
             Planos
           </a>
-          <a href="#contact" className="text-sm font-medium hover:text-primary transition-colors">
+          <a href="#contact" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
             Contato
           </a>
         </nav>
@@ -79,24 +79,24 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-2">
             {user ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hover:text-[#7f00fa] hover:bg-[#7f00fa]/10">
                   <User className="h-4 w-4 mr-2" />
                   Dashboard
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:text-[#fb0082] hover:bg-[#fb0082]/10">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={handleAuth}>
+                <Button variant="ghost" size="sm" onClick={handleAuth} className="hover:text-[#7f00fa] hover:bg-[#7f00fa]/10">
                   Entrar
                 </Button>
                 <Button size="sm" className="bg-gradient-cliniks hover:opacity-90" onClick={handleAuth}>
                   Começar Agora
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleAdminAccess}>
+                <Button variant="outline" size="sm" onClick={handleAdminAccess} className="border-[#7f00fa] text-[#7f00fa] hover:bg-[#7f00fa]/10">
                   <Shield className="h-4 w-4 mr-2" />
                   Admin
                 </Button>
@@ -120,36 +120,36 @@ const Header = () => {
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background">
           <nav className="container py-4 flex flex-col space-y-4">
-            <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
+            <a href="#features" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
               Funcionalidades
             </a>
-            <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">
+            <a href="#pricing" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
               Planos
             </a>
-            <a href="#contact" className="text-sm font-medium hover:text-primary transition-colors">
+            <a href="#contact" className="text-sm font-medium hover:text-[#7f00fa] transition-colors">
               Contato
             </a>
             <div className="flex flex-col space-y-2 pt-4 border-t">
               {user ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hover:text-[#7f00fa] hover:bg-[#7f00fa]/10">
                     <User className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:text-[#fb0082] hover:bg-[#fb0082]/10">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sair
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" onClick={handleAuth}>
+                  <Button variant="ghost" size="sm" onClick={handleAuth} className="hover:text-[#7f00fa] hover:bg-[#7f00fa]/10">
                     Entrar
                   </Button>
                   <Button size="sm" className="bg-gradient-cliniks hover:opacity-90" onClick={handleAuth}>
                     Começar Agora
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleAdminAccess}>
+                  <Button variant="outline" size="sm" onClick={handleAdminAccess} className="border-[#7f00fa] text-[#7f00fa] hover:bg-[#7f00fa]/10">
                     <Shield className="h-4 w-4 mr-2" />
                     Painel Admin
                   </Button>

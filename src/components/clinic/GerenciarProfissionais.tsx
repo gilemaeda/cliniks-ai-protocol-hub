@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
 import { Plus, UserCheck, UserX, Edit, Trash2 } from 'lucide-react';
 

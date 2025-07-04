@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ interface TutorialStep {
   id: number;
   title: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
   action?: string;
 }
@@ -28,6 +28,7 @@ const WelcomeTutorial = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const navigate = useNavigate();
 
   const steps: TutorialStep[] = [
     {
@@ -106,19 +107,19 @@ const WelcomeTutorial = () => {
   const handleActionClick = (step: TutorialStep) => {
     handleClose();
     
-    // Navegar para a página correspondente
+    // Navegar para a página correspondente usando o hook useNavigate
     switch (step.id) {
       case 2:
-        window.location.href = '/patients';
+        navigate('/patients');
         break;
       case 3:
-        window.location.href = '/central-recursos';
+        navigate('/central-recursos');
         break;
       case 4:
-        window.location.href = '/anamneses';
+        navigate('/anamneses');
         break;
       case 5:
-        window.location.href = '/avaliacao-ia';
+        navigate('/avaliacao-ia');
         break;
     }
   };

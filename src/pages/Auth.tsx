@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, User, Building2 } from 'lucide-react';
@@ -74,11 +74,27 @@ const Auth = () => {
         const { error } = await signIn(email, password);
         if (error) {
           console.error('Auth - Login error:', error);
-          toast({
-            title: "Erro no login",
-            description: error.message,
-            variant: "destructive"
-          });
+          
+          // Mensagens de erro mais específicas para login
+          if (error.message.includes('Invalid login credentials')) {
+            toast({
+              title: "Credenciais inválidas",
+              description: "Email ou senha incorretos. Verifique e tente novamente.",
+              variant: "destructive"
+            });
+          } else if (error.message.includes('Email not confirmed')) {
+            toast({
+              title: "Email não confirmado",
+              description: "Por favor, verifique seu email e confirme sua conta antes de fazer login.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Erro no login",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
         } else {
           console.log('Auth - Login successful');
           toast({
@@ -87,6 +103,17 @@ const Auth = () => {
           });
         }
       } else {
+        // Validações básicas antes de tentar o cadastro
+        if (!email || !password || !fullName) {
+          toast({
+            title: "Dados incompletos",
+            description: "Por favor, preencha todos os campos obrigatórios.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        
         console.log('Auth - Attempting signup for:', email);
         const { error } = await signUp(email, password, {
           full_name: fullName,
@@ -99,24 +126,58 @@ const Auth = () => {
         
         if (error) {
           console.error('Auth - Signup error:', error);
-          toast({
-            title: "Erro no cadastro",
-            description: error.message,
-            variant: "destructive"
-          });
+          
+          // Mensagens de erro mais específicas para cadastro
+          if (error.message.includes('already registered')) {
+            toast({
+              title: "Email já cadastrado",
+              description: "Este email já está em uso. Tente fazer login ou recuperar sua senha.",
+              variant: "destructive"
+            });
+          } else if (error.message.includes('password')) {
+            toast({
+              title: "Senha inválida",
+              description: "A senha deve ter pelo menos 6 caracteres.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Erro no cadastro",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
         } else {
           console.log('Auth - Signup successful');
           toast({
             title: "Cadastro realizado com sucesso!",
             description: "Verifique seu e-mail para confirmar a conta."
           });
+          
+          // Limpar os campos após cadastro bem-sucedido
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setCpf('');
+          setPhone('');
+          setClinicName('');
+          setCnpj('');
+          
+          // Opcional: redirecionar para a página de login
+          setIsLogin(true);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Auth - Unexpected error:', error);
+      
+      // Tratamento de erro genérico mais informativo
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Ocorreu um erro inesperado. Tente novamente.";
+      
       toast({
         title: "Erro",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

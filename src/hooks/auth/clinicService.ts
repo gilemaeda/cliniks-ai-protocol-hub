@@ -222,5 +222,41 @@ export const clinicService = {
       console.error('clinicService - Error in createClinic:', error);
       return null;
     }
+  },
+
+  async fetchSubscriptionStatus(clinicId: string): Promise<string | null> {
+    try {
+      console.log('fetchSubscriptionStatus: Consultando status para clínica', clinicId);
+      
+      // Chamar a Edge Function para obter o status da assinatura
+      const { data, error } = await supabase.functions.invoke('get-subscription-data', {
+        body: { clinicId }
+      });
+      
+      if (error) {
+        console.error('fetchSubscriptionStatus: Erro ao consultar status da assinatura:', error);
+        // Em caso de erro, retornar null para não bloquear o acesso
+        return null;
+      }
+      
+      if (!data || !data.data) {
+        console.log('fetchSubscriptionStatus: Nenhum dado de assinatura encontrado');
+        return null;
+      }
+      
+      // Verificar se está em período de trial
+      if (data.data.status === 'TRIAL') {
+        console.log(`fetchSubscriptionStatus: Clínica em período de trial, dias restantes: ${data.data.days_left || 'N/A'}`);
+        return 'TRIAL';
+      }
+      
+      // Retornar o status da assinatura
+      console.log('fetchSubscriptionStatus: Status da assinatura:', data.data.status);
+      return data.data.status;
+    } catch (error) {
+      console.error('fetchSubscriptionStatus: Erro inesperado:', error);
+      // Em caso de erro, retornar null para não bloquear o acesso
+      return null;
+    }
   }
 };

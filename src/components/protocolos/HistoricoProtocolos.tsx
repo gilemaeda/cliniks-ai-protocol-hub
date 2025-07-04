@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { Search, Edit, Copy, Download, Calendar, Trash2, User } from 'lucide-react';
 import { Protocol } from '@/hooks/useProtocolosQuery';
 import jsPDF from 'jspdf';

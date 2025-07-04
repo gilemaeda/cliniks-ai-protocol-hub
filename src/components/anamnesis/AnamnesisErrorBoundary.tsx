@@ -1,8 +1,13 @@
-
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { useNavigate, NavigateFunction } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  navigate: NavigateFunction;
+}
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -10,10 +15,10 @@ interface ErrorBoundaryState {
 }
 
 class AnamnesisErrorBoundary extends React.Component<
-  React.PropsWithChildren<{}>,
+  ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  constructor(props: React.PropsWithChildren<{}>) {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -53,7 +58,7 @@ class AnamnesisErrorBoundary extends React.Component<
                   Recarregar
                 </Button>
                 <Button
-                  onClick={() => window.location.href = '/dashboard'}
+                  onClick={() => this.props.navigate('/dashboard')}
                 >
                   Voltar ao Dashboard
                 </Button>
@@ -76,4 +81,10 @@ class AnamnesisErrorBoundary extends React.Component<
   }
 }
 
-export default AnamnesisErrorBoundary;
+// Wrapper component que usa o hook useNavigate e passa para o ErrorBoundary
+const AnamnesisErrorBoundaryWithRouter: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  return <AnamnesisErrorBoundary navigate={navigate}>{children}</AnamnesisErrorBoundary>;
+};
+
+export default AnamnesisErrorBoundaryWithRouter;

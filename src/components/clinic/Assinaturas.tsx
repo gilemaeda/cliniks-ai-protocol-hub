@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
 import { ArrowLeft, CreditCard, Calendar, Clock, CheckCircle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -165,12 +165,10 @@ const Assinaturas = () => {
   }, [clinic, fetchSubscriptionData]);
 
   const handleCreateSubscription = async () => {
-    console.log('Iniciando criação de assinatura com dados da clínica:', clinic);
-    
-    if (!clinic?.id) {
+    if (!user || !clinic || !profile) {
       toast({
-        title: 'Erro',
-        description: 'Dados da clínica não encontrados.',
+        title: 'Erro de Autenticação',
+        description: 'Seus dados não foram carregados corretamente. Por favor, recarregue a página.',
         variant: 'destructive',
       });
       return;
@@ -179,106 +177,76 @@ const Assinaturas = () => {
     setCreatingSubscription(true);
     const plano = planos.find(p => p.nome === selectedPlan);
     if (!plano) {
-      toast({ title: 'Erro', description: 'Plano selecionado não é válido.', variant: 'destructive' });
-      setCreatingSubscription(false);
-      return;
+        toast({ title: 'Erro', description: 'Plano selecionado não é válido.', variant: 'destructive' });
+        setCreatingSubscription(false);
+        return;
     }
 
     try {
-      // Log detalhado dos dados enviados para a Edge Function
-      const requestData = {
-        clinicId: clinic.id,
-        planName: plano.nome,
-        billingType: selectedBillingType,
-        value: plano.valor,
-        cycle: plano.ciclo,
-      };
-      
-      console.log('Enviando dados para Edge Function:', JSON.stringify(requestData, null, 2));
-      
-      const { data, error } = await supabase.functions.invoke('create-asaas-subscription', {
-        body: requestData,
-      });
+        const requestData = {
+            clinicId: clinic.id,
+            customerName: profile.full_name,
+            customerEmail: user.email,
+            customerCpfCnpj: profile.cpf,
+            planName: plano.nome,
+            billingType: selectedBillingType,
+            value: plano.valor,
+            cycle: plano.ciclo,
+        };
 
-      if (error) {
-        console.error('Erro retornado pela Edge Function:', error);
-        console.error('Detalhes completos do erro:', JSON.stringify(error, null, 2));
-        
-        if (error.context?.status === 400) {
-          try {
-            const responseText = await error.context.json();
-            console.error('Detalhes do erro 400:', responseText);
-            
-            toast({ 
-              title: 'Erro na requisição', 
-              description: responseText.error || 'A requisição contém dados inválidos ou incompletos.', 
-              variant: 'destructive', 
-              duration: 9000 
-            });
-          } catch (jsonError) {
-            console.error('Erro ao processar resposta JSON do erro 400:', jsonError);
-            toast({ 
-              title: 'Erro na requisição', 
-              description: 'A requisição contém dados inválidos ou incompletos.', 
-              variant: 'destructive', 
-              duration: 9000 
-            });
-          }
-        } else if (error.context?.status === 500) {
-          try {
-            const responseText = await error.context.json();
-            console.error('Detalhes do erro 500:', responseText);
-            
-            // Mensagens mais amigáveis baseadas em erros comuns do Asaas
-            let errorMessage = responseText.error || 'Ocorreu um erro interno no servidor.';
-            
-            if (errorMessage.includes('CPF/CNPJ')) {
-              errorMessage = 'O CPF/CNPJ informado é inválido ou está faltando. Verifique os dados da clínica e do proprietário.';
-            } else if (errorMessage.includes('name')) {
-              errorMessage = 'O nome do proprietário ou da clínica não está preenchido corretamente.';
-            } else if (errorMessage.includes('email')) {
-              errorMessage = 'O email do proprietário não é válido ou está faltando.';
+        const { data: asaasResult, error: invokeError } = await supabase.functions.invoke('create-asaas-subscription', {
+            body: requestData,
+        });
+
+        if (invokeError) {
+            console.error('Erro retornado pela Edge Function:', invokeError);
+            let description = invokeError.message;
+            if (invokeError.context?.status >= 400) {
+                try {
+                    const errorDetails = await invokeError.context.json();
+                    description = errorDetails.error || description;
+                } catch (e) { /* ignore json parsing error */ }
             }
-            
-            toast({ 
-              title: 'Erro ao criar assinatura', 
-              description: errorMessage, 
-              variant: 'destructive', 
-              duration: 9000 
-            });
-          } catch (jsonError) {
-            console.error('Erro ao processar resposta JSON:', jsonError);
-            toast({ 
-              title: 'Erro de Configuração', 
-              description: 'Ocorreu um erro interno no servidor. Verifique se todos os dados da clínica e do proprietário estão preenchidos corretamente.', 
-              variant: 'destructive', 
-              duration: 9000 
-            });
-          }
-        } else {
-          toast({ 
-            title: 'Erro ao Criar Assinatura', 
-            description: error.message, 
-            variant: 'destructive' 
-          });
+            toast({ title: 'Erro ao Criar Assinatura', description, variant: 'destructive' });
+            return;
         }
-        return;
-      }
 
-      toast({ title: 'Sucesso!', description: 'Assinatura criada. Redirecionando para pagamento...' });
-      if (data.paymentLink) {
-        window.open(data.paymentLink, '_blank');
-      }
-      await fetchSubscriptionData();
+        const { error: insertError } = await supabase.from('subscriptions').insert({
+            clinic_id: clinic.id,
+            asaas_customer_id: asaasResult.asaasCustomerId,
+            asaas_subscription_id: asaasResult.asaasSubscriptionId,
+            plan_name: selectedPlan,
+            status: asaasResult.status,
+            billing_type: selectedBillingType,
+            value: asaasResult.value,
+            next_due_date: asaasResult.nextDueDate,
+            cycle: asaasResult.cycle,
+            asaas_payment_link: asaasResult.paymentLink,
+        });
 
-    } catch (error) {
-      toast({
-        title: 'Erro Inesperado',
-        description: error instanceof Error ? error.message : 'Ocorreu um erro inesperado.',
-        variant: 'destructive',
-      });
+        if (insertError) {
+            console.error('Erro ao salvar assinatura localmente:', insertError);
+            throw new Error('Ocorreu um erro ao salvar os dados da sua assinatura.');
+        }
+
+        toast({ title: 'Sucesso!', description: 'Assinatura criada. Redirecionando para pagamento...' });
+        if (asaasResult.paymentLink) {
+            window.open(asaasResult.paymentLink, '_blank');
+        }
+        await fetchSubscriptionData();
+
+    } catch (error: unknown) {
+        let errorMessage = 'Ocorreu um erro inesperado.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        toast({
+            title: 'Erro Inesperado',
+            description: errorMessage,
+            variant: 'destructive',
+        });
     } finally {
-      setCreatingSubscription(false);
+        setCreatingSubscription(false);
     }
   };
 

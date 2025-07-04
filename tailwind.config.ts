@@ -91,16 +91,22 @@ export default {
 					900: '#881337',
 				},
 				cliniks: {
+					// Nova paleta de cores da Cliniks
+					gray: '#424242',
+					purple: '#7f00fa',
+					pink: '#fb0082',
+					aqua: '#0ff0b3',
+					// Mantemos as tonalidades para compatibilidade
 					50: '#fef4ff',
 					100: '#fce7ff',
 					200: '#f9d0fe',
 					300: '#f5acfc',
-					400: '#ee7af7',
-					500: '#e547ef',
+					400: '#7f00fa', // Atualizado para roxo
+					500: '#fb0082', // Atualizado para rosa
 					600: '#d128d6',
 					700: '#ae1fb3',
-					800: '#8f1d92',
-					900: '#751e77',
+					800: '#424242', // Atualizado para cinza
+					900: '#0ff0b3', // Atualizado para verde água
 				}
 			},
 			borderRadius: {
@@ -142,13 +148,31 @@ export default {
 					'50%': {
 						transform: 'translateY(-10px)'
 					}
+				},
+				'gradient-x': {
+					'0%, 100%': {
+						'background-position': '0% 50%'
+					},
+					'50%': {
+						'background-position': '100% 50%'
+					}
+				},
+				'pulse-glow': {
+					'0%, 100%': {
+						'box-shadow': '0 0 15px rgba(127,0,250,0.15)'
+					},
+					'50%': {
+						'box-shadow': '0 0 25px rgba(251,0,130,0.25)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.5s ease-out',
-				'float': 'float 3s ease-in-out infinite'
+				'float': 'float 3s ease-in-out infinite',
+				'gradient-slow': 'gradient-x 8s ease infinite',
+				'pulse-glow': 'pulse-glow 3s ease-in-out infinite'
 			},
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -156,8 +180,9 @@ export default {
 			},
 			backgroundImage: {
 				'gradient-aesthetic': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-				'gradient-cliniks': 'linear-gradient(135deg, #e547ef 0%, #f43f5e 100%)',
+				'gradient-cliniks': 'linear-gradient(135deg, #7f00fa 0%, #fb0082 100%)', // Atualizado com as novas cores roxo e rosa
 				'gradient-premium': 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)',
+				'gradient-cliniks-full': 'linear-gradient(135deg, #7f00fa 0%, #fb0082 50%, #0ff0b3 100%)', // Novo gradiente com todas as cores
 			}
 		}
 	},

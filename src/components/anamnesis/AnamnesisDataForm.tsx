@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save, User, HeartPulse, Smile, PersonStanding, Feather } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import AvaliacaoFacial from './forms/AvaliacaoFacial';
 import AvaliacaoCorporal from './forms/AvaliacaoCorporal';
 import AvaliacaoCapilar from './forms/AvaliacaoCapilar';

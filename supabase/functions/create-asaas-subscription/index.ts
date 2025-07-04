@@ -76,8 +76,16 @@ serve(async (req) => {
       });
     }
 
+    // Interface para dados da clínica
+    interface ClinicData {
+      id: string;
+      name: string;
+      cnpj?: string;
+      owner_id: string;
+    }
+    
     // Declarar a variável clinicData em um escopo mais amplo
-    let clinicData: any;
+    let clinicData: ClinicData;
     
     // Busca os dados da clínica
     console.log('Buscando dados da clínica com ID:', clinicId);
@@ -108,8 +116,17 @@ serve(async (req) => {
       throw new Error(`Erro ao buscar dados da clínica: ${error.message}`);
     }
     
+    // Interface para dados do proprietário
+    interface OwnerProfile {
+      id: string;
+      full_name: string;
+      email: string;
+      cpf?: string;
+      phone?: string;
+    }
+    
     // Declarar a variável ownerProfile em um escopo mais amplo
-    let ownerProfile: any;
+    let ownerProfile: OwnerProfile;
     
     // Buscar dados do proprietário da clínica diretamente da tabela profiles
     console.log('Buscando dados do proprietário com ID:', clinicData.owner_id);
@@ -281,10 +298,18 @@ serve(async (req) => {
     let asaasCustomerId = existingSubscription?.asaas_customer_id;
     if (!asaasCustomerId) {
       // Cria um novo cliente no Asaas
+      interface AsaasCustomerRequest {
+        name: string;
+        email: string;
+        phone?: string;
+        cpfCnpj: string;
+        notificationDisabled: boolean;
+      }
+
       const customerData: AsaasCustomerRequest = {
         name: ownerProfile.full_name.trim(),
         email: ownerProfile.email.trim(),
-        phone: ownerProfile.phone ? ownerProfile.phone.replace(/[^0-9]/g, '') : '',
+        phone: ownerProfile.phone ? ownerProfile.phone.replace(/[^0-9]/g, '') : undefined,
         cpfCnpj: cpfCnpj,
         notificationDisabled: false
       };
@@ -377,7 +402,7 @@ serve(async (req) => {
         console.error('Erro ao criar assinatura no Asaas:', JSON.stringify(errorData, null, 2));
         console.error('Detalhes do erro:');
         if (errorData.errors && errorData.errors.length > 0) {
-          errorData.errors.forEach((err: any, index: number) => {
+          errorData.errors.forEach((err: { code?: string; description?: string }, index: number) => {
             console.error(`Erro ${index + 1}:`, JSON.stringify(err, null, 2));
           });
         }
@@ -392,13 +417,15 @@ serve(async (req) => {
     console.log('--- Assinatura criada no Asaas ---', subscriptionResult.id);
 
     // Salva os dados da assinatura no banco
+    // Garantir que o status inicial seja sempre 'pending' independente do retorno do Asaas
+    // Isso garante que o acesso só será liberado após confirmação do pagamento via webhook
     const subscriptionRecord = {
       clinic_id: clinicId,
       asaas_customer_id: asaasCustomerId,
       asaas_subscription_id: subscriptionResult.id,
       asaas_payment_link: subscriptionResult.paymentLink || null,
       plan_name: planName,
-      status: subscriptionResult.status || 'pending',
+      status: 'pending', // Forçar status inicial como pending
       billing_type: billingType || 'CREDIT_CARD',
       value: parseFloat(value),
       next_due_date: nextDueDate.toISOString(),

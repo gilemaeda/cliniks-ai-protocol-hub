@@ -60,13 +60,13 @@ const Pricing = () => {
     <section id="pricing" className="py-20">
       <div className="container">
         <div className="text-center mb-16">
-          <Badge variant="secondary" className="mb-4">
+          <Badge variant="secondary" className="mb-4 bg-[#7f00fa]/10 text-[#7f00fa] hover:bg-[#7f00fa]/20">
             Planos e Preços
           </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#424242]">
             Escolha o plano ideal para sua clínica
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-[#424242]/80 max-w-2xl mx-auto">
             Planos flexíveis com desconto para pagamento anual
           </p>
         </div>
@@ -75,7 +75,7 @@ const Pricing = () => {
           {plans.map((plan, index) => (
             <Card 
               key={index} 
-              className={`relative ${plan.popular ? 'border-primary shadow-glow scale-105' : ''}`}
+              className={`relative ${plan.popular ? 'border-[#7f00fa] shadow-[#7f00fa]/20 shadow-lg scale-105' : ''}`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -97,15 +97,15 @@ const Pricing = () => {
               <CardContent>
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center text-sm">
-                      <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
+                    <li key={featureIndex} className="flex items-center text-sm text-[#424242]">
+                      <Check className="h-4 w-4 text-[#7f00fa] mr-3 flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
                 
                 <Button 
-                  className={`w-full ${plan.popular ? 'bg-gradient-cliniks hover:opacity-90' : ''}`}
+                  className={`w-full ${plan.popular ? 'bg-gradient-cliniks hover:opacity-90' : 'border-[#7f00fa] text-[#7f00fa] hover:bg-[#7f00fa]/10'}`}
                   variant={plan.popular ? 'default' : 'outline'}
                 >
                   {plan.cta}
@@ -116,10 +116,10 @@ const Pricing = () => {
         </div>
 
         <div className="text-center mt-12">
-          <p className="text-sm text-muted-foreground mb-4">
-            💳 Pagamento anual com <strong>20% de desconto</strong>
+          <p className="text-sm text-[#424242]/80 mb-4">
+            💳 Pagamento anual com <strong className="text-[#fb0082]">20% de desconto</strong>
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-[#424242]/70">
             Todos os planos incluem 7 dias de teste grátis • Cancele a qualquer momento
           </p>
         </div>

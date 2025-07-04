@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { clinicService } from '@/hooks/auth/clinicService';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
