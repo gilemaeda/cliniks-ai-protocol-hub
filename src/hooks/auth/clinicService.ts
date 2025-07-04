@@ -51,6 +51,7 @@ export const clinicService = {
           .insert({
             id: userId,
             full_name: userMetadata.full_name || userData.user?.email?.split('@')[0] || 'Usuário',
+            email: userData.user?.email, // Garantir que o email seja salvo explicitamente
             role: 'clinic_owner',
             clinic_id: clinicId
           });
@@ -145,23 +146,41 @@ export const clinicService = {
 
   createClinic: async (userId: string, fullName: string) => {
     try {
-      console.log('clinicService - Creating clinic for owner:', fullName);
-      const defaultName = `Clínica de ${fullName}`;
-
-      // Define a data de término do período de teste (7 dias a partir de agora)
+      console.log('clinicService - Creating new clinic for user:', userId);
+      
+      // Verificar se o usuário já tem uma clínica
+      const { data: existingClinics, error: checkError } = await supabase
+        .from('clinics')
+        .select('id')
+        .eq('owner_id', userId);
+        
+      if (checkError) {
+        console.error('clinicService - Error checking existing clinics:', checkError);
+        return null;
+      }
+      
+      if (existingClinics && existingClinics.length > 0) {
+        console.log('clinicService - User already has a clinic:', existingClinics[0].id);
+        return existingClinics[0].id;
+      }
+      
+      // Criar uma nova clínica
+      const defaultName = `Clínica ${fullName.split(' ')[0]}`;
+      
+      // Definir o período de trial (7 dias a partir de hoje)
       const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
-
-      // Criar a clínica com o período de teste e obter o ID
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 dias de trial
+      
+      console.log('clinicService - Setting trial period until:', trialEndsAt.toISOString());
+      
       const { data: clinicData, error } = await supabase
         .from('clinics')
         .insert({
           owner_id: userId,
           name: defaultName,
           trial_ends_at: trialEndsAt.toISOString(), // Adiciona o campo do período de teste
-          // O campo 'plan' foi removido, pois o sistema de planos foi simplificado
         })
-        .select('id')
+        .select('id, trial_ends_at') // Selecionando trial_ends_at para verificar se foi salvo corretamente
         .single();
 
       if (error) {
@@ -176,16 +195,50 @@ export const clinicService = {
       console.log('clinicService - Clinic created successfully with trial period:', clinicData);
       const clinicId = clinicData.id;
 
-      // Atualizar o perfil do usuário com o clinic_id
-      const { error: profileError } = await supabase
+      // Obter dados do usuário para garantir que temos o email
+      const { data: userData } = await supabase.auth.getUser();
+      const userEmail = userData.user?.email;
+      
+      // Primeiro verificar se o perfil já existe
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({ clinic_id: clinicId })
-        .eq('id', userId);
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (existingProfile) {
+        // Atualizar o perfil existente
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            clinic_id: clinicId,
+            email: userEmail, // Garantir que o email seja atualizado/salvo
+            role: 'clinic_owner' // Garantir que o role seja clinic_owner
+          })
+          .eq('id', userId);
 
-      if (profileError) {
-        console.error('clinicService - Error updating profile with clinic_id:', profileError);
+        if (profileError) {
+          console.error('clinicService - Error updating profile with clinic_id:', profileError);
+        } else {
+          console.log('clinicService - Profile updated with clinic_id and role:', clinicId);
+        }
       } else {
-        console.log('clinicService - Profile updated with clinic_id:', clinicId);
+        // Criar um novo perfil
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            full_name: fullName,
+            email: userEmail,
+            role: 'clinic_owner', // Garantir que o role seja clinic_owner
+            clinic_id: clinicId
+          });
+          
+        if (createProfileError) {
+          console.error('clinicService - Error creating profile:', createProfileError);
+        } else {
+          console.log('clinicService - Profile created with clinic_id and role:', clinicId);
+        }
       }
 
       // Verificar se já existe um registro de profissional para o proprietário
@@ -214,8 +267,6 @@ export const clinicService = {
       } else {
         console.log('clinicService - Professional record already exists for clinic owner');
       }
-
-
 
       return clinicId;
     } catch (error) {

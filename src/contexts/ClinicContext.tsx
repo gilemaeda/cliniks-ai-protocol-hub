@@ -63,9 +63,14 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
 
       if (clinicData) {
-        // 3. Buscar a última assinatura da clínica para verificar seu status usando a Edge Function
+        // 3. Verificar o campo trial_ends_at e buscar a última assinatura da clínica para verificar seu status
+        console.log('ClinicContext - Dados da clínica:', { 
+          id: clinicData.id, 
+          trial_ends_at: clinicData.trial_ends_at,
+          isValidDate: clinicData.trial_ends_at ? !isNaN(new Date(clinicData.trial_ends_at).getTime()) : false
+        });
         let subscriptionData = null;
-        let subError = null;
+        // Removido subError pois não é mais usado
         
         try {
           // Obter o token de autenticação
@@ -103,7 +108,12 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           // Continuamos o fluxo mesmo com erro
         }
 
-        // Não precisamos mais verificar subError, pois estamos usando a Edge Function
+        // Verificar o status da assinatura e o período de trial com logs detalhados
+        console.log('ClinicContext - Verificando status do plano:', {
+          subscriptionData,
+          trialEndsAt: clinicData.trial_ends_at,
+          hoje: new Date().toISOString()
+        });
 
         // 4. Determinar o status do plano
         const today = new Date();
@@ -115,17 +125,31 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           setPlanStatus('ACTIVE');
           setPlanStatusLabel('Ativo');
           setTrialDaysRemaining(null);
-        } else if (subStatus === 'PAST_DUE' || subStatus === 'EXPIRED' || subStatus === 'INACTIVE' && trialEndDate && trialEndDate <= today) {
+        } else if (subStatus === 'PAST_DUE' || subStatus === 'EXPIRED' || (subStatus === 'INACTIVE' && trialEndDate && trialEndDate <= today)) {
+          console.log('ClinicContext - Plano expirado:', { subStatus, trialEndDate });
           setPlanStatus('EXPIRED');
           setPlanStatusLabel('Expirado');
           setTrialDaysRemaining(0);
-        } else if (trialEndDate && trialEndDate > today) {
+        } else if (subStatus === 'TRIAL' || (trialEndDate && trialEndDate > today)) {
+          // Considerar tanto o status TRIAL da Edge Function quanto a verificação da data de trial_ends_at
+          console.log('ClinicContext - Clínica em período de trial:', { subStatus, trialEndDate });
           setPlanStatus('TRIAL');
           setPlanStatusLabel('Em Teste');
-          const diffTime = trialEndDate.getTime() - today.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          // Calcular dias restantes se tiver trialEndDate, senão usar valor padrão de 7 dias
+          let diffDays = 7; // Valor padrão
+          if (trialEndDate) {
+            const diffTime = trialEndDate.getTime() - today.getTime();
+            diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          } else if (subscriptionData?.days_left) {
+            // Usar dias restantes retornados pela Edge Function
+            diffDays = subscriptionData.days_left;
+          }
+          
+          console.log('ClinicContext - Dias restantes de trial:', diffDays);
           setTrialDaysRemaining(diffDays);
         } else {
+          console.log('ClinicContext - Plano inativo:', { subStatus, trialEndDate });
           setPlanStatus('INACTIVE');
           setPlanStatusLabel('Inativo');
           setTrialDaysRemaining(null);

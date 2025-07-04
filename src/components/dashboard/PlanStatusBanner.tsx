@@ -19,8 +19,8 @@ const PlanStatusBanner: React.FC<PlanStatusBannerProps> = ({ status, daysRemaini
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
       textColor: 'text-blue-800',
-      title: 'Você está no período de teste!',
-      message: `Você tem ${daysRemaining} dias restantes para explorar todos os recursos.`,
+      title: 'Você está no período de testes!',
+      message: `Você tem ${daysRemaining} dias restantes com todas as ferramentas liberadas para uso.`,
       buttonText: 'Ver Planos',
     },
     ACTIVE: {

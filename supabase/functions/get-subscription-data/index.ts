@@ -103,7 +103,7 @@ serve(async (req) => {
       // Verificar se a clínica está em período de trial
       const { data: clinicData, error: clinicError } = await supabaseAdmin
         .from('clinics')
-        .select('created_at')
+        .select('created_at, trial_ends_at')
         .eq('id', clinicId)
         .single();
       
@@ -112,12 +112,22 @@ serve(async (req) => {
         return new Response(JSON.stringify({ data: null }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
       }
       
-      // Verificar se está dentro do período de trial (15 dias)
-      const clinicCreatedAt = new Date(clinicData.created_at);
+      // Verificar se está dentro do período de trial (7 dias)
       const now = new Date();
-      const trialPeriodDays = 15;
-      const trialEndDate = new Date(clinicCreatedAt);
-      trialEndDate.setDate(trialEndDate.getDate() + trialPeriodDays);
+      let trialEndDate;
+      
+      // Usar o campo trial_ends_at se disponível, caso contrário calcular com base na data de criação
+      if (clinicData.trial_ends_at) {
+        trialEndDate = new Date(clinicData.trial_ends_at);
+        console.log(`Usando trial_ends_at definido: ${trialEndDate}`);
+      } else {
+        // Fallback para o cálculo baseado na data de criação
+        const clinicCreatedAt = new Date(clinicData.created_at);
+        const trialPeriodDays = 7; // Ajustado para 7 dias
+        trialEndDate = new Date(clinicCreatedAt);
+        trialEndDate.setDate(trialEndDate.getDate() + trialPeriodDays);
+        console.log(`Calculando trial_ends_at: ${trialEndDate} (${trialPeriodDays} dias após criação)`);
+      }
       
       if (now <= trialEndDate) {
         // Ainda está no período de trial

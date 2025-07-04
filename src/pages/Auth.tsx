@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/auth/authContext';
-import { useToast } from '@/hooks/use-toast';
+import { checkEmailExists, checkCnpjExists } from '@/services/validationService';
+import { toast } from 'sonner'; // Substituindo useToast pelo toast do sonner
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, User, Building2 } from 'lucide-react';
 import PasswordReset from '@/components/auth/PasswordReset';
@@ -22,7 +23,6 @@ const Auth = () => {
   const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -77,38 +77,56 @@ const Auth = () => {
           
           // Mensagens de erro mais específicas para login
           if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: "Credenciais inválidas",
-              description: "Email ou senha incorretos. Verifique e tente novamente.",
-              variant: "destructive"
+            toast.error("Credenciais inválidas", {
+              description: "Email ou senha incorretos. Verifique e tente novamente."
             });
           } else if (error.message.includes('Email not confirmed')) {
-            toast({
-              title: "Email não confirmado",
-              description: "Por favor, verifique seu email e confirme sua conta antes de fazer login.",
-              variant: "destructive"
+            toast.error("Email não confirmado", {
+              description: "Por favor, verifique seu email e confirme sua conta antes de fazer login."
             });
           } else {
-            toast({
-              title: "Erro no login",
-              description: error.message,
-              variant: "destructive"
+            toast.error("Erro no login", {
+              description: error.message
             });
           }
         } else {
           console.log('Auth - Login successful');
-          toast({
-            title: "Login realizado com sucesso!",
+          toast.success("Login realizado com sucesso!", {
             description: "Bem-vindo de volta!"
           });
+          
+          // Redirecionamento explícito após login bem-sucedido
+          setTimeout(() => {
+            console.log('Auth - Redirecionando para dashboard após login bem-sucedido');
+            navigate('/dashboard', { replace: true });
+          }, 1000); // Pequeno delay para garantir que o toast seja exibido
         }
       } else {
+        // Validações de duplicidade
+        const emailExists = await checkEmailExists(email);
+        if (emailExists) {
+          toast.error("E-mail já cadastrado", {
+            description: "Este e-mail já está em uso. Por favor, tente outro ou faça login."
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (cnpj) {
+          const cnpjExists = await checkCnpjExists(cnpj);
+          if (cnpjExists) {
+            toast.error("CNPJ já cadastrado", {
+              description: "Este CNPJ já está associado a outra clínica."
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
         // Validações básicas antes de tentar o cadastro
         if (!email || !password || !fullName) {
-          toast({
-            title: "Dados incompletos",
-            description: "Por favor, preencha todos os campos obrigatórios.",
-            variant: "destructive"
+          toast.error("Dados incompletos", {
+            description: "Por favor, preencha todos os campos obrigatórios."
           });
           setLoading(false);
           return;
@@ -129,29 +147,22 @@ const Auth = () => {
           
           // Mensagens de erro mais específicas para cadastro
           if (error.message.includes('already registered')) {
-            toast({
-              title: "Email já cadastrado",
-              description: "Este email já está em uso. Tente fazer login ou recuperar sua senha.",
-              variant: "destructive"
+            toast.error("Email já cadastrado", {
+              description: "Este email já está em uso. Tente fazer login ou recuperar sua senha."
             });
           } else if (error.message.includes('password')) {
-            toast({
-              title: "Senha inválida",
-              description: "A senha deve ter pelo menos 6 caracteres.",
-              variant: "destructive"
+            toast.error("Senha inválida", {
+              description: "A senha deve ter pelo menos 6 caracteres."
             });
           } else {
-            toast({
-              title: "Erro no cadastro",
-              description: error.message,
-              variant: "destructive"
+            toast.error("Erro no cadastro", {
+              description: error.message
             });
           }
         } else {
           console.log('Auth - Signup successful');
-          toast({
-            title: "Cadastro realizado com sucesso!",
-            description: "Verifique seu e-mail para confirmar a conta."
+          toast.success("Cadastro realizado com sucesso!", {
+            description: "Sua clínica foi criada com um período de trial de 7 dias. Verifique seu e-mail para confirmar a conta."
           });
           
           // Limpar os campos após cadastro bem-sucedido
@@ -162,6 +173,14 @@ const Auth = () => {
           setPhone('');
           setClinicName('');
           setCnpj('');
+          
+          // Redirecionar para a página de login após 3 segundos
+          setTimeout(() => {
+            setIsLogin(true);
+            toast.info("Faça login para acessar sua conta", {
+              description: "Use o email e senha que você acabou de cadastrar."
+            });
+          }, 3000);
           
           // Opcional: redirecionar para a página de login
           setIsLogin(true);
@@ -175,10 +194,8 @@ const Auth = () => {
         ? error.message 
         : "Ocorreu um erro inesperado. Tente novamente.";
       
-      toast({
-        title: "Erro",
-        description: errorMessage,
-        variant: "destructive"
+      toast.error("Erro", {
+        description: errorMessage
       });
     } finally {
       setLoading(false);

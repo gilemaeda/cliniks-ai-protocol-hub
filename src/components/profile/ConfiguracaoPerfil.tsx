@@ -19,7 +19,7 @@ interface ProfileData {
 const ConfiguracaoPerfil = () => {
   const { user, profile, authLoading } = useAuth();
   const { toast } = useToast();
-  const { clinic, planStatus, trialDaysRemaining } = useClinic();
+  const { clinic, planStatus, planStatusLabel, trialDaysRemaining } = useClinic();
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -117,12 +117,12 @@ const ConfiguracaoPerfil = () => {
             <p><span className="font-medium text-gray-600 dark:text-gray-400">Nome:</span> {clinic.name}</p>
             <div className="flex items-center gap-2">
               <span className="font-medium text-gray-600 dark:text-gray-400">Status do Plano:</span>
-              <Badge variant={planStatus === 'Ativo' ? 'success' : planStatus === 'Em Teste' ? 'warning' : 'destructive'}>
+              <Badge variant={planStatusLabel === 'Ativo' ? 'success' : planStatusLabel === 'Em Teste' ? 'warning' : 'destructive'}>
                 <ShieldCheck className="h-3 w-3 mr-1" />
-                {planStatus}
+                {planStatusLabel}
               </Badge>
             </div>
-            {planStatus === 'Em Teste' && (
+            {planStatusLabel === 'Em Teste' && (
               <p className="text-sm">
                 <span className="font-medium text-gray-600 dark:text-gray-400">Dias restantes:</span> {trialDaysRemaining}
               </p>
