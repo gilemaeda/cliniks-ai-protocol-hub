@@ -30,16 +30,20 @@ const MainTools = () => {
   const [tools, setTools] = useState<Tool[]>([]);
 
   useEffect(() => {
+    // Verificar se é proprietário da clínica e se está em período de trial
+    const isClinicOwner = profile?.role === 'clinic_owner';
+    const isInTrial = planStatus === 'TRIAL';
+    
     const baseTools = [
       {
         id: 'avaliacao-facial',
         title: 'Avaliação Facial',
-        description: 'Análise completa da pele facial com IA',
+        description: 'Análise completa Facial com IA',
         icon: User,
         color: 'bg-[#7f00fa]/10',
         badge: 'IA',
         badgeColor: 'bg-[#7f00fa]',
-        onClick: () => navigate('/avaliacao-ia?type=facial')
+        onClick: () => navigate('/avaliacao-ia/facial')
       },
       {
         id: 'avaliacao-corporal',
@@ -49,7 +53,7 @@ const MainTools = () => {
         color: 'bg-[#fb0082]/10',
         badge: 'IA',
         badgeColor: 'bg-[#fb0082]',
-        onClick: () => navigate('/avaliacao-ia?type=corporal')
+        onClick: () => navigate('/avaliacao-ia/corporal')
       },
       {
         id: 'avaliacao-capilar',
@@ -59,7 +63,7 @@ const MainTools = () => {
         color: 'bg-[#0ff0b3]/10',
         badge: 'IA',
         badgeColor: 'bg-[#0ff0b3]',
-        onClick: () => navigate('/avaliacao-ia?type=capilar')
+        onClick: () => navigate('/avaliacao-ia/capilar')
       },
       {
         id: 'chat-ia',

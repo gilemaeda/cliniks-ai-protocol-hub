@@ -75,6 +75,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const profileData = await profileService.fetchProfile(currentSession.user.id);
           if (profileData) {
             console.log('Perfil encontrado');
+            
+            // Verificar se o usuário é proprietário com base nos metadados
+            const userMetadata = currentSession.user.user_metadata || {};
+            const isOwnerInMetadata = userMetadata.role === 'clinic_owner';
+            
+            // Se os metadados indicam que é proprietário mas o perfil não, corrigir
+            if (isOwnerInMetadata && profileData.role !== 'clinic_owner') {
+              console.log('Corrigindo role do perfil: deveria ser clinic_owner mas está como', profileData.role);
+              
+              // Atualizar o perfil no banco de dados
+              try {
+                const { data: updatedProfile, error } = await supabase
+                  .from('profiles')
+                  .update({ role: 'clinic_owner' })
+                  .eq('id', profileData.id)
+                  .select()
+                  .single();
+                  
+                if (error) {
+                  console.error('Erro ao atualizar role do perfil:', error);
+                } else if (updatedProfile) {
+                  console.log('Role do perfil atualizado com sucesso para clinic_owner');
+                  profileData.role = 'clinic_owner';
+                }
+              } catch (updateError) {
+                console.error('Erro ao tentar atualizar role do perfil:', updateError);
+              }
+            }
+            
             setProfile(profileData);
             saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, profileData);
             

@@ -94,7 +94,7 @@ const eventToStatusMap: { [key: string]: string } = {
   'SUBSCRIPTION_UPDATED': null, // Não altera status, apenas processa webhook
   'SUBSCRIPTION_DELETED': 'CANCELED',
   'SUBSCRIPTION_RENEWED': 'ACTIVE',
-  'SUBSCRIPTION_ACTIVATED': 'ACTIVE',
+  'SUBSCRIPTION_ACTIVATED': null, // Não ativa a assinatura aqui. A ativação depende da confirmação do pagamento.
   'SUBSCRIPTION_CANCELED': 'CANCELED'
 };
 

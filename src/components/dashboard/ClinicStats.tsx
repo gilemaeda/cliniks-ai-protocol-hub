@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,46 +5,60 @@ import { useAuth } from '@/hooks/auth/authContext';
 import { Users, FileText, Camera, Wrench, Brain, Building2 } from 'lucide-react';
 
 interface ClinicStatistics {
-  total_assessments: number;
-  total_professionals: number;
-  total_patients: number;
-  total_photos: number;
-  total_protocols: number;
-  total_resources: number;
+  assessments: number;
+  professionals: number;
+  patients: number;
+  photos: number;
+  protocols: number;
+  resources: number;
 }
 
 const ClinicStats = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [stats, setStats] = useState<ClinicStatistics>({
-    total_assessments: 0,
-    total_professionals: 0,
-    total_patients: 0,
-    total_photos: 0,
-    total_protocols: 0,
-    total_resources: 0
+    assessments: 0,
+    professionals: 0,
+    patients: 0,
+    photos: 0,
+    protocols: 0,
+    resources: 0
   });
   const [loading, setLoading] = useState(true);
 
+  // Efeito para buscar estatísticas quando o perfil do usuário estiver disponível
   useEffect(() => {
-    if (user) {
+    if (profile) {
       fetchStatistics();
     }
-  }, [user]);
+  }, [profile]); // Executar quando o perfil mudar
 
   const fetchStatistics = async () => {
-    if (!user) return;
+    if (!user || !profile || !profile.clinic_id) {
+      console.warn('ClinicStats: Usuário, perfil ou ID da clínica não disponível para buscar estatísticas.');
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .rpc('get_clinic_statistics');
+      console.log('ClinicStats: Iniciando busca de estatísticas para a clínica:', profile.clinic_id);
 
-      if (error) throw error;
+      // A função obtém o clinic_id do usuário autenticado no backend
+      const { data, error } = await supabase.rpc('get_clinic_statistics');
 
-      if (data && data.length > 0) {
-        setStats(data[0]);
+      console.log('ClinicStats: Resposta da função RPC:', { data, error });
+
+      if (error) {
+        console.error('ClinicStats: Erro ao chamar função get_clinic_statistics:', error);
+        // Opcional: Adicionar um toast de erro para o usuário
+      } else if (data) {
+        console.log('ClinicStats: Dados recebidos com sucesso:', data);
+        setStats(data);
+      } else {
+        console.warn('ClinicStats: A função RPC não retornou dados.');
       }
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
+      console.error('ClinicStats: Erro inesperado ao buscar estatísticas:', error);
     } finally {
       setLoading(false);
     }
@@ -54,42 +67,42 @@ const ClinicStats = () => {
   const statCards = [
     {
       title: 'Avaliações',
-      value: stats.total_assessments,
+      value: stats.assessments,
       icon: Brain,
       color: 'text-blue-600',
       description: 'Avaliações realizadas'
     },
     {
       title: 'Profissionais',
-      value: stats.total_professionals,
+      value: stats.professionals,
       icon: Users,
       color: 'text-green-600',
       description: 'Profissionais ativos'
     },
     {
       title: 'Pacientes',
-      value: stats.total_patients,
+      value: stats.patients,
       icon: Building2,
       color: 'text-purple-600',
       description: 'Pacientes cadastrados'
     },
     {
       title: 'Fotos',
-      value: stats.total_photos,
+      value: stats.photos,
       icon: Camera,
       color: 'text-orange-600',
       description: 'Fotos no sistema'
     },
     {
       title: 'Protocolos',
-      value: stats.total_protocols,
+      value: stats.protocols,
       icon: FileText,
       color: 'text-red-600',
       description: 'Protocolos criados'
     },
     {
       title: 'Recursos',
-      value: stats.total_resources,
+      value: stats.resources,
       icon: Wrench,
       color: 'text-indigo-600',
       description: 'Equipamentos e produtos'

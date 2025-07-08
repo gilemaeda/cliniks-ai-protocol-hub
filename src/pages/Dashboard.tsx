@@ -1,12 +1,14 @@
 import { useAuth } from '@/hooks/auth/authContext';
 import { Navigate } from 'react-router-dom';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+import OwnerDashboard from '@/components/dashboard/OwnerDashboard';
 
 // Dashboard original restaurado
 const Dashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
-  if (loading) {
+  // Mostra o spinner enquanto a sessão ou o perfil estiverem carregando
+  if (loading || (user && !profile)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#424242]/5">
         <div className="text-center">
@@ -17,11 +19,16 @@ const Dashboard = () => {
     );
   }
 
+  // Se não houver usuário após o carregamento, redireciona para o login
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Renderiza o Dashboard profissional completo
+  // Renderiza o dashboard correto com base no perfil do usuário
+  if (profile.role === 'clinic_owner') {
+    return <OwnerDashboard />;
+  }
+
   return <ProfessionalDashboard />;
 };
 

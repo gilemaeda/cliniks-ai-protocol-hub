@@ -23,28 +23,54 @@ serve(async (req) => {
       }
     );
 
-    const { action, key, value } = await req.json();
+    const { action, key, value, settings } = await req.json();
 
     // Verificar se o usuário é um admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Cabeçalho de autorização ausente");
       return new Response(
-        JSON.stringify({ success: false, message: "Não autorizado" }),
+        JSON.stringify({ success: false, message: "Não autorizado - cabeçalho de autorização ausente" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("Cabeçalho de autorização recebido:", authHeader.substring(0, 15) + "...");
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    // Verificar se o usuário é um admin
+    let user;
+    try {
+      const { data, error: authError } = await supabaseClient.auth.getUser(token);
 
-    if (authError || !user) {
+      if (authError) {
+        console.error("Erro na autenticação:", authError);
+        return new Response(
+          JSON.stringify({ success: false, message: "Não autorizado - erro na validação do token", error: authError }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!data.user) {
+        console.error("Usuário não encontrado para o token fornecido");
+        return new Response(
+          JSON.stringify({ success: false, message: "Não autorizado - usuário não encontrado" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      user = data.user;
+      console.log("Usuário autenticado com sucesso:", user.email);
+    } catch (authError) {
+      console.error("Exceção na autenticação:", authError);
       return new Response(
-        JSON.stringify({ success: false, message: "Não autorizado" }),
+        JSON.stringify({ success: false, message: "Não autorizado - erro na autenticação", error: String(authError) }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Verificar se o usuário é um admin
+    
+    // Usuário já foi validado no bloco anterior
+    
     console.log("Verificando se o usuário é admin:", user.email);
     
     // Verificar se o email é gilemaeda@gmail.com (admin master)
@@ -68,10 +94,14 @@ serve(async (req) => {
         );
       }
     }
+    
+    // Log adicional para diagnóstico
+    console.log("Usuário validado como admin, processando ação:", action, "para chave:", key);
 
     // Processar a ação solicitada
     if (action === "get") {
       // Buscar configuração
+      console.log("Buscando configuração para chave:", key);
       const { data, error } = await supabaseClient
         .from("system_settings")
         .select("*")
@@ -79,6 +109,16 @@ serve(async (req) => {
         .single();
 
       if (error) {
+        // Se o erro for "não encontrado", retornar sucesso com dados vazios
+        if (error.code === "PGRST116") {
+          console.log("Configuração não encontrada para chave:", key);
+          return new Response(
+            JSON.stringify({ success: true, data: null }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.error("Erro ao buscar configuração:", error);
         return new Response(
           JSON.stringify({ success: false, message: error.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -90,6 +130,8 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (action === "set") {
+      console.log("Salvando configuração para chave:", key, "com valor:", value);
+      
       // Verificar se a configuração já existe
       const { data: existingData, error: checkError } = await supabaseClient
         .from("system_settings")
@@ -117,14 +159,48 @@ serve(async (req) => {
       }
 
       if (result.error) {
+        console.error("Erro ao salvar configuração:", result.error);
         return new Response(
           JSON.stringify({ success: false, message: result.error.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      
+      console.log("Configuração salva com sucesso para chave:", key);
 
       return new Response(
-        JSON.stringify({ success: true, message: "Configuração salva com sucesso" }),
+        JSON.stringify({ 
+          success: true, 
+          message: "Configuração salva com sucesso",
+          data: { key, value }
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else if (action === "set-batch") {
+      console.log("Salvando configurações em lote:", settings);
+
+      if (!Array.isArray(settings) || settings.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Nenhuma configuração fornecida para salvar em lote." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error } = await supabaseClient
+        .from("system_settings")
+        .upsert(settings, { onConflict: 'key' });
+
+      if (error) {
+        console.error("Erro ao salvar configurações em lote:", error);
+        return new Response(
+          JSON.stringify({ success: false, message: error.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("Configurações em lote salvas com sucesso.");
+      return new Response(
+        JSON.stringify({ success: true, message: "Configurações salvas com sucesso" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
@@ -134,10 +210,14 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Erro:", error);
+    console.error("Erro não tratado na Edge Function:", error);
     
     return new Response(
-      JSON.stringify({ success: false, message: error instanceof Error ? error.message : "Erro desconhecido" }),
+      JSON.stringify({ 
+        success: false, 
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+        error: String(error)
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

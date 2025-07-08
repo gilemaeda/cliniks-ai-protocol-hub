@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import ClinicStats from './ClinicStats';
 import MainTools from '@/components/dashboard/MainTools';
 import { FileText, Users, Camera, Calendar, Settings, Brain, Lock } from 'lucide-react';
 import { useAccessControl } from '@/hooks/useAccessControl';
@@ -41,45 +42,6 @@ const ProfessionalDashboard = () => {
   const { canAccess, blockReason, isChecking } = useAccessControl();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [professional, setProfessional] = useState<Professional | null>(null);
-  const [stats, setStats] = useState({
-    assessments: 0,
-    patients: 0,
-    photos: 0,
-    protocols: 0
-  });
-
-  const fetchProfessionalStats = useCallback(async (professionalId: string, clinicId: string) => {
-    try {
-      const { count: assessmentsCount } = await supabase
-        .from('assessments')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      const { count: patientsCount } = await supabase
-        .from('patients')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      const { count: photosCount } = await supabase
-        .from('patient_photos')
-        .select('*', { count: 'exact', head: true })
-        .eq('professional_id', professionalId);
-
-      const { count: protocolsCount } = await supabase
-        .from('custom_protocols')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
-
-      setStats({
-        assessments: assessmentsCount || 0,
-        patients: patientsCount || 0,
-        photos: photosCount || 0,
-        protocols: protocolsCount || 0
-      });
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
-    }
-  }, []);
 
   const fetchProfessionalData = useCallback(async () => {
     if (!user) return;
@@ -121,23 +83,18 @@ const ProfessionalDashboard = () => {
           if (profData) {
             setProfessional(profData);
           }
-
-          // Buscar estatísticas do profissional
-          await fetchProfessionalStats(userData.professional_id, userData.clinic_id);
         }
       }
     } catch (error) {
       console.error('Erro ao buscar dados do profissional:', error);
     }
-  }, [user, fetchProfessionalStats]);
+  }, [user]);
 
   useEffect(() => {
-    if (user && profile?.role === 'professional') {
+    if (user && profile) {
       fetchProfessionalData();
     }
-  }, [user, profile, fetchProfessionalData]);
-
-
+  }, [user, profile]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -200,51 +157,9 @@ const ProfessionalDashboard = () => {
   return (
     <div className="min-h-screen bg-[#424242]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avaliações</CardTitle>
-              <Brain className="h-4 w-4 text-[#7f00fa]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#424242]">{stats.assessments}</div>
-              <p className="text-xs text-[#424242]/70">Avaliações realizadas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pacientes</CardTitle>
-              <Users className="h-4 w-4 text-[#fb0082]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#424242]">{stats.patients}</div>
-              <p className="text-xs text-[#424242]/70">Pacientes atendidos</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Fotos</CardTitle>
-              <Camera className="h-4 w-4 text-[#7f00fa]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#424242]">{stats.photos}</div>
-              <p className="text-xs text-[#424242]/70">Fotos cadastradas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Protocolos</CardTitle>
-              <FileText className="h-4 w-4 text-[#fb0082]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#424242]">{stats.protocols}</div>
-              <p className="text-xs text-[#424242]/70">Protocolos disponíveis</p>
-            </CardContent>
-          </Card>
+        {/* Estatísticas da Clínica - Agora usando o componente centralizado */}
+        <div className="mb-8">
+          <ClinicStats />
         </div>
 
         {/* Ferramentas principais */}

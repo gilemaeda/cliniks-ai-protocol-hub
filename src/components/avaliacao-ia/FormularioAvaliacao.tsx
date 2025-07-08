@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePatientsQuery } from '@/hooks/usePatientsQuery';
 import { ArrowLeft, Upload, Wand2, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStatePreservation } from '@/hooks/useStatePreservation';
 
 interface FormularioAvaliacaoProps {
   onCancel?: () => void;
@@ -33,30 +34,35 @@ const FormularioAvaliacao = ({
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [revalLoading, setRevalLoading] = useState(false);
-  const [tipoAvaliacao, setTipoAvaliacao] = useState<'facial' | 'corporal' | 'capilar'>(assessmentType);
+  
+  // Usar useStatePreservation para preservar o estado entre recarregamentos
+  const [tipoAvaliacao, setTipoAvaliacao] = useStatePreservation<'facial' | 'corporal' | 'capilar'>(
+    'form_tipo_avaliacao', 
+    assessmentType
+  );
 
-  // Estados para modo de edição/clonagem
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isCloneMode, setIsCloneMode] = useState(false);
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  // Estados para modo de edição/clonagem com persistência
+  const [isEditMode, setIsEditMode] = useStatePreservation<boolean>('form_is_edit_mode', false);
+  const [isCloneMode, setIsCloneMode] = useStatePreservation<boolean>('form_is_clone_mode', false);
+  const [assessmentId, setAssessmentId] = useStatePreservation<string | null>('form_assessment_id', null);
 
-  // Estados dos campos do formulário
-  const [modoPaciente, setModoPaciente] = useState<'cadastrado' | 'manual'>('cadastrado');
-  const [paciente, setPaciente] = useState('');
-  const [idadePaciente, setIdadePaciente] = useState(0);
-  const [dadosPacienteManual, setDadosPacienteManual] = useState({ nome: '', idade: 30 });
-  const [queixaPrincipal, setQueixaPrincipal] = useState('');
-  const [resultadoEsperado, setResultadoEsperado] = useState('');
-  const [observacoes, setObservacoes] = useState('');
+  // Estados dos campos do formulário com persistência
+  const [modoPaciente, setModoPaciente] = useStatePreservation<'cadastrado' | 'manual'>('form_modo_paciente', 'cadastrado');
+  const [paciente, setPaciente] = useStatePreservation<string>('form_paciente', '');
+  const [idadePaciente, setIdadePaciente] = useStatePreservation<number>('form_idade_paciente', 0);
+  const [dadosPacienteManual, setDadosPacienteManual] = useStatePreservation('form_dados_paciente_manual', { nome: '', idade: 30 });
+  const [queixaPrincipal, setQueixaPrincipal] = useStatePreservation<string>('form_queixa_principal', '');
+  const [resultadoEsperado, setResultadoEsperado] = useStatePreservation<string>('form_resultado_esperado', '');
+  const [observacoes, setObservacoes] = useStatePreservation<string>('form_observacoes', '');
 
-  // Estados para recursos
-  const [modoRecursos, setModoRecursos] = useState<'cadastrados' | 'manual'>('cadastrados');
-  const [recursosSelecionados, setRecursosSelecionados] = useState<string[]>([]);
-  const [recursosManual, setRecursosManual] = useState('');
+  // Estados para recursos com persistência
+  const [modoRecursos, setModoRecursos] = useStatePreservation<'cadastrados' | 'manual'>('form_modo_recursos', 'cadastrados');
+  const [recursosSelecionados, setRecursosSelecionados] = useStatePreservation<string[]>('form_recursos_selecionados', []);
+  const [recursosManual, setRecursosManual] = useStatePreservation<string>('form_recursos_manual', '');
 
-  // IDs da clínica e profissional
-  const [clinicId, setClinicId] = useState('');
-  const [professionalId, setProfessionalId] = useState('');
+  // IDs da clínica e profissional com persistência
+  const [clinicId, setClinicId] = useStatePreservation<string>('form_clinic_id', '');
+  const [professionalId, setProfessionalId] = useStatePreservation<string>('form_professional_id', '');
 
   // O estado 'patients' foi removido e substituído pelo hook usePatientsQuery.
   
@@ -66,7 +72,7 @@ const FormularioAvaliacao = ({
     injetaveis: Array<{id: string; name: string; purpose?: string}>;
   }
   
-  const [recursos, setRecursos] = useState<ResourcesType>({
+  const [recursos, setRecursos] = useStatePreservation<ResourcesType>('form_recursos', {
     equipamentos: [],
     cosmeticos: [],
     injetaveis: []
@@ -551,6 +557,65 @@ const FormularioAvaliacao = ({
       setLoading(false);
     }
   };
+
+  // Adicionar evento para detectar quando a página volta a ficar visível
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Formulário de avaliação: página voltou a ficar visível');
+        
+        // Verificar se há dados salvos no localStorage
+        // (isso já é feito automaticamente pelo hook useStatePreservation)
+        
+        // Recarregar recursos se necessário
+        if (clinicId && modoRecursos === 'cadastrados' && recursos.equipamentos.length === 0) {
+          fetchResources();
+        }
+      }
+    };
+
+    const handleTabFocused = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Tab focada, tempo desde último foco:', customEvent.detail?.timeSinceLastFocus);
+      
+      // Recarregar recursos se necessário
+      if (clinicId && modoRecursos === 'cadastrados' && recursos.equipamentos.length === 0) {
+        fetchResources();
+      }
+      
+      // Solicitar preservação de estado se o TabStateManager estiver disponível
+      if (window.TabStateManager) {
+        window.TabStateManager.preserveState();
+      }
+    };
+
+    const handleTabBlurred = () => {
+      console.log('Tab perdeu foco, salvando estado...');
+      
+      // Forçar salvamento de todos os estados no localStorage
+      // (isso já é feito automaticamente pelo hook useStatePreservation)
+      
+      // Solicitar preservação de estado se o TabStateManager estiver disponível
+      if (window.TabStateManager) {
+        window.TabStateManager.preserveState();
+      }
+    };
+
+    // Adicionar listeners para eventos de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+    
+    // Adicionar listeners para eventos personalizados do TabStateManager
+    window.addEventListener('app:tabFocused', handleTabFocused);
+    window.addEventListener('app:tabBlurred', handleTabBlurred);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('app:tabFocused', handleTabFocused);
+      window.removeEventListener('app:tabBlurred', handleTabBlurred);
+    };
+  }, [clinicId, modoRecursos, recursos.equipamentos.length]);
 
   return (
     <Card className="w-full">

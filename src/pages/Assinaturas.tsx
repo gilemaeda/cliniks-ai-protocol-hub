@@ -1,4 +1,4 @@
-import Assinaturas from '@/components/clinic/Assinaturas';
+import Assinaturas from '@/components/Assinaturas/Assinaturas';
 
 const AssinaturasPage = () => {
   return <Assinaturas />;

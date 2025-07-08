@@ -10,7 +10,8 @@ serve(async (req) => {
   }
 
   try {
-    const { webhookUrl } = await req.json();
+    const { url, payload } = await req.json();
+    const webhookUrl = url;
 
     if (!webhookUrl) {
       return new Response(
@@ -25,8 +26,8 @@ serve(async (req) => {
       );
     }
 
-    // Preparar dados de teste
-    const testPayload = {
+    // Usar o payload fornecido ou criar um padrão
+    const testPayload = payload || {
       event: "TEST_WEBHOOK",
       timestamp: new Date().toISOString(),
       source: "Cliniks AI Protocol Hub",
@@ -38,6 +39,9 @@ serve(async (req) => {
         }
       }
     };
+    
+    console.log("Testando webhook para URL:", webhookUrl);
+    console.log("Payload:", JSON.stringify(testPayload).substring(0, 100) + "...");
 
     // Enviar requisição para o webhook
     const response = await fetch(webhookUrl, {

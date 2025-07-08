@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      // Desativar recarregamento automático quando a página perde o foco
+      overlay: false,
+    },
   },
   plugins: [
     react(),

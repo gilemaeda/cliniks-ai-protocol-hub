@@ -120,16 +120,17 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const trialEndDate = clinicData.trial_ends_at ? new Date(clinicData.trial_ends_at) : null;
 
         const subStatus = subscriptionData?.status;
+        const nextDueDate = subscriptionData?.next_due_date ? new Date(subscriptionData.next_due_date) : null;
 
         if (subStatus === 'ACTIVE' || subStatus === 'CONFIRMED') {
           setPlanStatus('ACTIVE');
           setPlanStatusLabel('Ativo');
           setTrialDaysRemaining(null);
-        } else if (subStatus === 'PAST_DUE' || subStatus === 'EXPIRED' || (subStatus === 'INACTIVE' && trialEndDate && trialEndDate <= today)) {
-          console.log('ClinicContext - Plano expirado:', { subStatus, trialEndDate });
-          setPlanStatus('EXPIRED');
-          setPlanStatusLabel('Expirado');
-          setTrialDaysRemaining(0);
+        } else if (subStatus === 'CANCELED' && nextDueDate && nextDueDate > today) {
+          console.log(`ClinicContext - Plano cancelado, mas válido até ${nextDueDate.toISOString()}`);
+          setPlanStatus('ACTIVE');
+          setPlanStatusLabel('Ativo'); // A UI pode mostrar "Cancelamento agendado" se quiser
+          setTrialDaysRemaining(null);
         } else if (subStatus === 'TRIAL' || (trialEndDate && trialEndDate > today)) {
           // Considerar tanto o status TRIAL da Edge Function quanto a verificação da data de trial_ends_at
           console.log('ClinicContext - Clínica em período de trial:', { subStatus, trialEndDate });
@@ -149,7 +150,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           console.log('ClinicContext - Dias restantes de trial:', diffDays);
           setTrialDaysRemaining(diffDays);
         } else {
-          console.log('ClinicContext - Plano inativo:', { subStatus, trialEndDate });
+          // Todos os outros casos (PAST_DUE, EXPIRED, INACTIVE, CANCELED e vencido)
+          console.log('ClinicContext - Plano inativo/expirado (condição final):', { subStatus, trialEndDate, nextDueDate });
           setPlanStatus('INACTIVE');
           setPlanStatusLabel('Inativo');
           setTrialDaysRemaining(null);

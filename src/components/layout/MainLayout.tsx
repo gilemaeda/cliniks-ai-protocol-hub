@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useClinic } from '@/hooks/useClinic';
 import { usePageState } from '@/hooks/usePageState';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type MainLayoutProps = {
   children?: React.ReactNode;
@@ -19,6 +20,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { restoreState } = usePageState();
+  
+  // Verificar se estamos em ambiente de desenvolvimento
+  const isDevelopment = import.meta.env.DEV;
   
   // Restaurar estado da página quando o componente é montado
   useEffect(() => {
@@ -86,14 +90,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
               />
               <div>
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="text-xl font-extrabold text-white drop-shadow-md tracking-tight hover:underline focus:outline-none"
-                    title="Voltar para o Dashboard"
-                    onClick={() => navigate('/dashboard')}
-                  >
+                  <h1 className="text-white font-bold text-lg">
                     {clinic?.name || 'Cliniks IA'}
-                  </button>
+                  </h1>
                   <Badge 
                     variant={planStatusLabel === 'Ativo' ? 'success' : planStatusLabel === 'Em Teste' ? 'warning' : 'destructive'}
                     className="ml-2"

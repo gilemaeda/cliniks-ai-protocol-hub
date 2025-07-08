@@ -85,13 +85,17 @@ export const profileService = {
         return null;
       }
 
+      // Garantir que o role seja sempre clinic_owner se especificado nos metadados
+      const userRole = userMetadata.role === 'clinic_owner' ? 'clinic_owner' : (userMetadata.role || 'clinic_owner');
+      console.log('profileService - Role definido para o perfil:', userRole);
+      
       const insertQuery = supabase
         .from('profiles')
         .insert({
           id: userId,
           full_name: userMetadata.full_name || userEmail.split('@')[0] || 'Usuário',
           email: userEmail, // Garantir que o email seja salvo explicitamente
-          role: userMetadata.role || 'clinic_owner',
+          role: userRole, // Usar o role validado
           cpf: userMetadata.cpf,
           phone: userMetadata.phone
         })

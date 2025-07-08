@@ -160,7 +160,9 @@ serve(async (req) => {
           console.log('Status no Asaas:', asaasData.status, 'Status no banco:', subscriptionData.status);
           
           // Verificar se o status no Asaas é diferente do status no banco
-          if (asaasData.status !== subscriptionData.status) {
+          // Apenas sincroniza se o status for diferente E se o status local não for 'CANCELED'.
+          // O status 'CANCELED' é uma ação final do usuário e não deve ser sobrescrito.
+          if (asaasData.status !== subscriptionData.status && subscriptionData.status !== 'CANCELED') {
             console.log(`Atualizando status da assinatura ${subscriptionData.id} de ${subscriptionData.status} para ${asaasData.status}`);
             
             // Verificar se o status é válido para atualização
