@@ -1,6 +1,15 @@
 export type PlanStatus = 'TRIAL' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'LOADING';
 export type PlanStatusLabel = 'Em Teste' | 'Ativo' | 'Inativo' | 'Expirado' | 'Carregando...';
 
+export interface ClinicStatistics {
+  patients: number;
+  protocols: number;
+  assessments: number;
+  anamnesis: number;
+  professionals: number;
+  photos: number;
+}
+
 export interface BrandColors {
   primary: string;
   header: string;

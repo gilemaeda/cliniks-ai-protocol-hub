@@ -53,7 +53,7 @@ const ClinicStats = () => {
         // Opcional: Adicionar um toast de erro para o usuário
       } else if (data) {
         console.log('ClinicStats: Dados recebidos com sucesso:', data);
-        setStats(data);
+        setStats(data as any);
       } else {
         console.warn('ClinicStats: A função RPC não retornou dados.');
       }

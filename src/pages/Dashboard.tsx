@@ -1,9 +1,8 @@
 import { useAuth } from '@/hooks/auth/authContext';
 import { Navigate } from 'react-router-dom';
-import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
-import OwnerDashboard from '@/components/dashboard/OwnerDashboard';
+import NetflixStyleDashboard from '@/components/dashboard/NetflixStyleDashboard';
 
-// Dashboard original restaurado
+// Dashboard Netflix redesenhado
 const Dashboard = () => {
   const { user, profile, loading } = useAuth();
 
@@ -24,12 +23,8 @@ const Dashboard = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Renderiza o dashboard correto com base no perfil do usuário
-  if (profile.role === 'clinic_owner') {
-    return <OwnerDashboard />;
-  }
-
-  return <ProfessionalDashboard />;
+  // Renderiza o dashboard Netflix style para todos os usuários
+  return <NetflixStyleDashboard />;
 };
 
 export default Dashboard;
