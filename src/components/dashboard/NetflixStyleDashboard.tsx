@@ -8,11 +8,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
+// Importar imagens padrão
+import avaliacaoFacialImg from '@/assets/avaliacao-facial.jpg';
+import avaliacaoCorporalImg from '@/assets/avaliacao-corporal.jpg';
+import avaliacaoCapilarImg from '@/assets/avaliacao-capilar.jpg'; 
+import protocolosImg from '@/assets/protocolos.jpg';
+import historicoAvaliacoesImg from '@/assets/historico-avaliacoes.jpg';
+import recursosImg from '@/assets/recursos.jpg';
+
 interface ToolCard {
   title: string;
   image: string;
   route: string;
   section: string;
+  id: string;
 }
 
 const NetflixStyleDashboard = () => {
@@ -23,6 +32,7 @@ const NetflixStyleDashboard = () => {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
+  const [toolImages, setToolImages] = useState<Record<string, string>>({});
 
   const stats = [
     { icon: Users, label: 'Pacientes', value: 850, color: 'text-purple-400' },
@@ -69,9 +79,51 @@ const NetflixStyleDashboard = () => {
     }
   };
 
+  // Imagens padrão das ferramentas
+  const defaultToolImages: Record<string, string> = {
+    'avaliacao-facial': avaliacaoFacialImg,
+    'avaliacao-corporal': avaliacaoCorporalImg,
+    'avaliacao-capilar': avaliacaoCapilarImg,
+    'protocolos': protocolosImg,
+    'historico-avaliacoes': historicoAvaliacoesImg,
+    'recursos': recursosImg,
+    'pacientes': '/placeholder.svg',
+    'anamneses': '/placeholder.svg',
+    'galeria': '/placeholder.svg',
+    'portal': '/placeholder.svg',
+    'configuracao-clinica': '/placeholder.svg',
+    'assinaturas': '/placeholder.svg'
+  };
+
+  // Função para carregar imagens customizadas das ferramentas
+  const loadToolImages = async () => {
+    if (!clinic?.id) return;
+
+    try {
+      const { data } = await supabase
+        .from('dashboard_card_images')
+        .select('card_id, image_url')
+        .eq('clinic_id', clinic.id);
+
+      if (data && data.length > 0) {
+        const customImages: Record<string, string> = {};
+        data.forEach(item => {
+          customImages[item.card_id] = item.image_url;
+        });
+        setToolImages({ ...defaultToolImages, ...customImages });
+      } else {
+        setToolImages(defaultToolImages);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar imagens das ferramentas:', error);
+      setToolImages(defaultToolImages);
+    }
+  };
+
   // Carregar imagens quando a clínica estiver disponível
   useEffect(() => {
     loadCarouselImages();
+    loadToolImages();
   }, [clinic?.id]);
 
   const toolSections = [
@@ -79,30 +131,30 @@ const NetflixStyleDashboard = () => {
       title: 'Inteligência Artificial',
       color: 'text-purple-400',
       tools: [
-        { title: 'Avaliação Facial', image: '/placeholder.svg', route: '/avaliacao-facial', section: 'ai' },
-        { title: 'Avaliação Corporal', image: '/placeholder.svg', route: '/avaliacao-corporal', section: 'ai' },
-        { title: 'Avaliação Capilar', image: '/placeholder.svg', route: '/avaliacao-capilar', section: 'ai' },
-        { title: 'Protocolos Personalizados', image: '/placeholder.svg', route: '/protocolos', section: 'ai' },
+        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-facial', section: 'ai', id: 'avaliacao-facial' },
+        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-corporal', section: 'ai', id: 'avaliacao-corporal' },
+        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-capilar', section: 'ai', id: 'avaliacao-capilar' },
+        { title: 'Protocolos Personalizados', image: toolImages['protocolos'] || '/placeholder.svg', route: '/protocolos', section: 'ai', id: 'protocolos' },
       ]
     },
     {
       title: 'Gerenciamento da Clínica',
       color: 'text-pink-400',
       tools: [
-        { title: 'Histórico de Avaliações', image: '/placeholder.svg', route: '/historico-avaliacoes', section: 'management' },
-        { title: 'Recursos', image: '/placeholder.svg', route: '/recursos', section: 'management' },
-        { title: 'Pacientes', image: '/placeholder.svg', route: '/pacientes', section: 'management' },
-        { title: 'Anamneses', image: '/placeholder.svg', route: '/anamneses', section: 'management' },
-        { title: 'Galeria de Fotos', image: '/placeholder.svg', route: '/galeria', section: 'management' },
+        { title: 'Histórico de Avaliações', image: toolImages['historico-avaliacoes'] || '/placeholder.svg', route: '/historico-avaliacoes', section: 'management', id: 'historico-avaliacoes' },
+        { title: 'Recursos', image: toolImages['recursos'] || '/placeholder.svg', route: '/recursos', section: 'management', id: 'recursos' },
+        { title: 'Pacientes', image: toolImages['pacientes'] || '/placeholder.svg', route: '/pacientes', section: 'management', id: 'pacientes' },
+        { title: 'Anamneses', image: toolImages['anamneses'] || '/placeholder.svg', route: '/anamneses', section: 'management', id: 'anamneses' },
+        { title: 'Galeria de Fotos', image: toolImages['galeria'] || '/placeholder.svg', route: '/galeria', section: 'management', id: 'galeria' },
       ]
     },
     {
       title: 'Configurações e Suporte',
       color: 'text-teal-400',
       tools: [
-        { title: 'Portal Cliniks', image: '/placeholder.svg', route: '/portal', section: 'settings' },
-        { title: 'Configurações da Clínica', image: '/placeholder.svg', route: '/configuracao-clinica', section: 'settings' },
-        { title: 'Assinaturas e Planos', image: '/placeholder.svg', route: '/assinaturas', section: 'settings' },
+        { title: 'Portal Cliniks', image: toolImages['portal'] || '/placeholder.svg', route: '/portal', section: 'settings', id: 'portal' },
+        { title: 'Configurações da Clínica', image: toolImages['configuracao-clinica'] || '/placeholder.svg', route: '/configuracao-clinica', section: 'settings', id: 'configuracao-clinica' },
+        { title: 'Assinaturas e Planos', image: toolImages['assinaturas'] || '/placeholder.svg', route: '/assinaturas', section: 'settings', id: 'assinaturas' },
       ]
     }
   ];
