@@ -300,17 +300,37 @@ const PlanSelection = ({
                 <SelectItem value="PIX">PIX</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500 mt-2">Pagamento processado com segurança via Asaas</p>
-                O pagamento será processado automaticamente de acordo com o ciclo selecionado.
-                Você pode cancelar sua assinatura a qualquer momento.
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Pagamento processado com segurança via Asaas. 
+              O pagamento será processado automaticamente de acordo com o ciclo selecionado.
+              Você pode cancelar sua assinatura a qualquer momento.
+            </p>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Button 
+              onClick={handleCreateSubscription}
+              disabled={creatingSubscription || !selectedPlan || !selectedBillingType}
+              className="w-full md:w-auto px-8 py-3"
+            >
+              {creatingSubscription ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando assinatura...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Assinar Agora - {formatCurrency(planos.find(p => p.nome === selectedPlan)?.valor || 0)}/mês
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+};
 
 const SubscriptionDetails = ({ subscription }: { subscription: Subscription }) => {
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
