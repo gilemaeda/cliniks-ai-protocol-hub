@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ToolCard {
   title: string;
@@ -20,6 +21,7 @@ const NetflixStyleDashboard = () => {
   const { theme, setTheme } = useTheme();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
 
   const stats = [
     { icon: Users, label: 'Pacientes', value: 850, color: 'text-purple-400' },
@@ -30,11 +32,46 @@ const NetflixStyleDashboard = () => {
     { icon: Camera, label: 'Fotos', value: 670, color: 'text-pink-400' },
   ];
 
-  const carouselImages = [
-    '/placeholder.svg',
-    '/placeholder.svg',
-    '/placeholder.svg',
-  ];
+  // Função para carregar imagens do carrossel da clínica
+  const loadCarouselImages = async () => {
+    if (!clinic?.id) return;
+
+    try {
+      const images: string[] = [];
+      
+      // Adicionar banner da clínica se existir
+      if (clinic.banner_url) {
+        images.push(clinic.banner_url);
+      }
+
+      // Buscar imagens adicionais do carrossel
+      const { data: carouselData } = await supabase
+        .from('clinic_carousel_images')
+        .select('image_url')
+        .eq('clinic_id', clinic.id)
+        .order('sort_order', { ascending: true });
+
+      if (carouselData && carouselData.length > 0) {
+        const additionalImages = carouselData.map(item => item.image_url);
+        images.push(...additionalImages);
+      }
+
+      // Se não houver imagens, usar placeholder
+      if (images.length === 0) {
+        images.push('/placeholder.svg');
+      }
+
+      setCarouselImages(images);
+    } catch (error) {
+      console.error('Erro ao carregar imagens do carrossel:', error);
+      setCarouselImages(['/placeholder.svg']);
+    }
+  };
+
+  // Carregar imagens quando a clínica estiver disponível
+  useEffect(() => {
+    loadCarouselImages();
+  }, [clinic?.id]);
 
   const toolSections = [
     {
