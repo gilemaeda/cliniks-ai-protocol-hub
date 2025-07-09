@@ -140,8 +140,8 @@ const ConfiguracaoClinica = () => {
         cnpj: clinic.cnpj,
         plan: clinic.plan,
         employee_count: clinic.employee_count,
-        brand_colors: clinic.brand_colors,
-        notification_settings: clinic.notification_settings,
+        brand_colors: clinic.brand_colors as any,
+        notification_settings: clinic.notification_settings as any,
       };
 
       let clinicId = clinic.id;
@@ -156,7 +156,7 @@ const ConfiguracaoClinica = () => {
       } else {
         const { data, error } = await supabase
           .from('clinics')
-          .insert([{ ...clinicPayload, owner_id: user.id }])
+          .insert({ ...clinicPayload, owner_id: user.id })
           .select('id')
           .single();
 
@@ -185,7 +185,7 @@ const ConfiguracaoClinica = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   };
 
@@ -408,9 +408,9 @@ const ConfiguracaoClinica = () => {
 
       {/* Botão Salvar */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={loading || isUploading !== null} size="lg">
+        <Button onClick={handleSave} disabled={localLoading || isUploading !== null} size="lg">
           <Save className="h-4 w-4 mr-2" />
-          {loading ? 'Salvando...' : 'Salvar Configurações'}
+          {localLoading ? 'Salvando...' : 'Salvar Configurações'}
         </Button>
       </div>
     </div>

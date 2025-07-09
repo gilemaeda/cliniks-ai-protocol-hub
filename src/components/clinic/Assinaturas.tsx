@@ -359,7 +359,7 @@ const SubscriptionDetails = ({ subscription }: { subscription: Subscription }) =
 
       if (response.error) throw new Error(response.error.message);
 
-      toast({ title: 'Assinatura cancelada com sucesso', description: 'Sua assinatura será válida até o final do período atual.', variant: 'success' });
+      toast({ title: 'Assinatura cancelada com sucesso', description: 'Sua assinatura será válida até o final do período atual.' });
       setTimeout(() => navigate(0), 1500); // Recarrega a página após 1.5 segundos
     } catch (error) {
       console.error('Erro ao cancelar assinatura:', error);
@@ -438,7 +438,7 @@ const SubscriptionDetails = ({ subscription }: { subscription: Subscription }) =
                   
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Forma de pagamento:</span>
-                    <span className="font-medium">{getBillingTypeText(subscription.billing_type || subscription.asaas_data?.billingType || '')}</span>
+                    <span className="font-medium">{getBillingTypeText((subscription as any).billing_type || subscription.asaas_data?.billingType || '')}</span>
                   </div>
                 </div>
               </div>
@@ -646,9 +646,9 @@ const Assinaturas = () => {
       if (result.data?.payment_url) {
         setPaymentUrl(result.data.payment_url);
         setActiveTab('pagamento');
-        toast({ title: 'Link de pagamento gerado', description: 'Prossiga para finalizar sua assinatura', variant: 'success' });
+        toast({ title: 'Link de pagamento gerado', description: 'Prossiga para finalizar sua assinatura' });
       } else {
-        toast({ title: 'Assinatura criada com sucesso!', description: 'Aguarde a confirmação do pagamento.', variant: 'success' });
+        toast({ title: 'Assinatura criada com sucesso!', description: 'Aguarde a confirmação do pagamento.' });
         fetchSubscriptionData();
       }
     } catch (error) {
@@ -685,11 +685,11 @@ const Assinaturas = () => {
       const result = response.data;
       
       if (result.status === 'ACTIVE' || result.status === 'CONFIRMED') {
-        toast({ title: 'Assinatura ativa!', description: 'Seu pagamento foi confirmado com sucesso.', variant: 'success' });
+        toast({ title: 'Assinatura ativa!', description: 'Seu pagamento foi confirmado com sucesso.' });
         fetchSubscriptionData();
         setActiveTab('detalhes');
       } else if (result.status === 'PENDING') {
-        toast({ title: 'Pagamento pendente', description: 'Seu pagamento ainda está sendo processado. Tente novamente em alguns minutos.', variant: 'warning' });
+        toast({ title: 'Pagamento pendente', description: 'Seu pagamento ainda está sendo processado. Tente novamente em alguns minutos.' });
       } else {
         toast({ title: 'Pagamento não confirmado', description: `Status atual: ${result.status}. Verifique seu método de pagamento.`, variant: 'destructive' });
       }

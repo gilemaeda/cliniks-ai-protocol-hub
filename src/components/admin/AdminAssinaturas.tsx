@@ -169,8 +169,8 @@ const AdminAssinaturas = () => {
       const filtered = subscriptions.filter(sub => 
         sub.clinics?.name?.toLowerCase().includes(lowercasedSearch) ||
         sub.clinics?.cnpj?.includes(lowercasedSearch) ||
-        sub.clinics?.profiles?.full_name?.toLowerCase().includes(lowercasedSearch) ||
-        sub.clinics?.profiles?.email?.toLowerCase().includes(lowercasedSearch) ||
+        sub.clinics?.profiles?.[0]?.full_name?.toLowerCase().includes(lowercasedSearch) ||
+        sub.clinics?.profiles?.[0]?.email?.toLowerCase().includes(lowercasedSearch) ||
         sub.status.toLowerCase().includes(lowercasedSearch) ||
         sub.plan_name.toLowerCase().includes(lowercasedSearch)
       );
@@ -314,8 +314,8 @@ const AdminAssinaturas = () => {
         searchTerm.trim() === '' || 
         sub.clinics?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.clinics?.cnpj?.includes(searchTerm) ||
-        sub.clinics?.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.clinics?.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.[0]?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.[0]?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
       ));
@@ -375,8 +375,8 @@ const AdminAssinaturas = () => {
         searchTerm.trim() === '' || 
         sub.clinics?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.clinics?.cnpj?.includes(searchTerm) ||
-        sub.clinics?.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.clinics?.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.[0]?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.clinics?.profiles?.[0]?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
       ));
@@ -476,9 +476,9 @@ const AdminAssinaturas = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {subscription.clinics?.profiles?.full_name || 'N/A'}
+                        {subscription.clinics?.profiles?.[0]?.full_name || 'N/A'}
                         <div className="text-xs text-gray-500">
-                          {subscription.clinics?.profiles?.email || 'Email não informado'}
+                          {subscription.clinics?.profiles?.[0]?.email || 'Email não informado'}
                         </div>
                       </TableCell>
                       <TableCell>
