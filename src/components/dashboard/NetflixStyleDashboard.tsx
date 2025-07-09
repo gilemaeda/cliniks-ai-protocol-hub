@@ -100,7 +100,7 @@ const NetflixStyleDashboard = () => {
           <img 
             src="/lovable-uploads/d2f2cf36-d805-46d2-8805-9f5753c736cb.png" 
             alt="Cliniks IA" 
-            className="h-80 w-auto"
+            className="h-12 w-auto object-contain"
           />
         </div>
         
