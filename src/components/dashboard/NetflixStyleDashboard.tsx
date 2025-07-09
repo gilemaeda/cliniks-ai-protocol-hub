@@ -5,7 +5,7 @@ import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Cli
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ToolCard {
@@ -16,9 +16,10 @@ interface ToolCard {
 }
 
 const NetflixStyleDashboard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { clinic } = useClinic();
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
@@ -145,11 +146,23 @@ const NetflixStyleDashboard = () => {
           <Button variant="ghost" size="sm" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </span>
-          </div>
+          <button 
+            onClick={() => {
+              if (profile?.role === 'clinic_owner') {
+                navigate('/configuracao-clinica');
+              } else {
+                navigate('/configuracao-profissional');
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+            title="Configurações do perfil"
+          >
+            <img 
+              src={clinic?.logo_url || "/lovable-uploads/ed86d62a-a928-44f7-8e5f-ec4200aedbb3.png"} 
+              alt="Logo da Clínica" 
+              className="w-8 h-8 rounded-full object-contain"
+            />
+          </button>
         </div>
       </header>
 
