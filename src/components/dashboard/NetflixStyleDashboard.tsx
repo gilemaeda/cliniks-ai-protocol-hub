@@ -5,7 +5,9 @@ import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Cli
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ToolCard {
@@ -16,9 +18,10 @@ interface ToolCard {
 }
 
 const NetflixStyleDashboard = () => {
-  const { user } = useAuth();
-  const { clinic } = useClinic();
+  const { user, profile, signOut } = useAuth();
+  const { clinic, planStatusLabel, trialDaysRemaining } = useClinic();
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
@@ -131,24 +134,77 @@ const NetflixStyleDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between p-6 bg-background/80 backdrop-blur-sm border-b border-border/50">
-        <div className="flex items-center space-x-4">
-          <img 
-            src="/lovable-uploads/d2f2cf36-d805-46d2-8805-9f5753c736cb.png" 
-            alt="Cliniks IA" 
-            className="h-12 w-auto object-contain"
-          />
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </span>
+      {/* Header da Clínica */}
+      <header
+        className="shadow-md"
+        style={{
+          background: clinic?.brand_colors?.header
+            ? clinic.brand_colors.header
+            : 'linear-gradient(to right, #7f00fa, #fb0082, #0ff0b3)',
+          transition: 'background 0.3s',
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex flex-row justify-between items-center py-2 gap-2 min-h-[56px]">
+            {/* Logotipo da Clínica */}
+            <div className="flex items-center gap-2">
+              <img
+                src={clinic?.logo_url || "/lovable-uploads/ed86d62a-a928-44f7-8e5f-ec4200aedbb3.png"}
+                alt="Logo da Clínica"
+                className="h-10 w-10 rounded-full bg-white shadow-md object-contain border-2 border-pink-400 p-1"
+              />
+              <div>
+                <div className="flex items-center gap-1">
+                  <h1 className="text-white font-bold text-lg">
+                    {clinic?.name || 'Cliniks IA'}
+                  </h1>
+                  <Badge 
+                    variant={planStatusLabel === 'Ativo' ? 'success' : planStatusLabel === 'Em Teste' ? 'warning' : 'destructive'}
+                    className="ml-2"
+                    title={`Status do Plano: ${planStatusLabel}${planStatusLabel === 'Em Teste' && trialDaysRemaining ? ` (${trialDaysRemaining} dias restantes)` : ''}`}
+                  >
+                    {planStatusLabel}
+                  </Badge>
+                </div>
+                <p className="text-xs text-white/80 font-medium">Plataforma Cliniks</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Botão tema */}
+              <Button variant="ghost" size="sm" onClick={toggleTheme} className="text-white hover:bg-white/10">
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              {/* Área de perfil clicável */}
+              <button
+                className="flex items-center gap-2 bg-white/80 rounded-xl px-3 py-1 shadow-md hover:bg-white/90 transition cursor-pointer group"
+                onClick={() => {
+                  if (profile?.role === 'clinic_owner') {
+                    navigate('/configuracao-clinica');
+                  } else {
+                    navigate('/configuracao-profissional');
+                  }
+                }}
+                title="Ir para configurações"
+              >
+                <Avatar className="h-9 w-9 ring-2 ring-[#fb0082]">
+                  <AvatarImage src={clinic?.logo_url} alt={clinic?.name} className="object-contain" />
+                  <AvatarFallback>{profile?.full_name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="text-left">
+                  <p className="text-base font-bold text-gray-900 leading-tight">{profile?.full_name}</p>
+                  <Badge variant="secondary" className="mt-0.5 text-[10px] px-2 py-0.5">
+                    {profile?.role === 'clinic_owner' ? 'Proprietário' : 'Profissional'}
+                  </Badge>
+                </div>
+                <span className="ml-2 text-gray-500 group-hover:text-[#7f00fa] transition">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Zm7.94-2.34a1 1 0 0 0 .25-1.09l-1-1.73a1 1 0 0 1 0-.94l1-1.73a1 1 0 0 0-.25-1.09l-2-2a1 1 0 0 0-1.09-.25l-1.73 1a1 1 0 0 1-.94 0l-1.73-1a1 1 0 0 0-1.09.25l-2 2a1 1 0 0 0-.25 1.09l1 1.73a1 1 0 0 1 0 .94l-1 1.73a1 1 0 0 0 .25 1.09l2 2a1 1 0 0 0 1.09.25l1.73-1a1 1 0 0 1 .94 0l1.73 1a1 1 0 0 0 1.09-.25l2-2Z"/></svg>
+                </span>
+              </button>
+              {/* Botão sair */}
+              <Button variant="ghost" size="icon" className="rounded-full p-2 text-white hover:bg-[#fb0082]/80" onClick={signOut} title="Sair">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
