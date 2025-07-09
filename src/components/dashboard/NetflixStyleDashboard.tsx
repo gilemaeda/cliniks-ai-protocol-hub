@@ -241,7 +241,7 @@ const NetflixStyleDashboard = () => {
 
           {/* Carousel */}
           <div className="lg:col-span-2">
-            <div className="relative rounded-lg overflow-hidden aspect-video bg-card/30 backdrop-blur-sm">
+            <div className="relative rounded-lg overflow-hidden aspect-[16/7] bg-card/30 backdrop-blur-sm">
               <img 
                 src={carouselImages[carouselIndex]}
                 alt="Banner"
@@ -312,7 +312,7 @@ const NetflixStyleDashboard = () => {
             <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
               {section.tools.map((tool, toolIndex) => (
                 <Link key={toolIndex} to={tool.route}>
-                  <Card className="flex-shrink-0 w-64 h-36 bg-card/50 backdrop-blur-sm border-border/50 hover:scale-105 hover:bg-card/70 transition-all duration-300 cursor-pointer group">
+                  <Card className="flex-shrink-0 w-72 h-40 bg-card/50 backdrop-blur-sm border-border/50 hover:scale-105 hover:bg-card/70 transition-all duration-300 cursor-pointer group">
                     <CardContent className="p-0 h-full relative rounded-lg overflow-hidden">
                       <img 
                         src={tool.image}
