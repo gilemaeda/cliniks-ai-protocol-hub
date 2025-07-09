@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 interface MedidasCorporaisProps {
   data: any;
   onChange: (data: any) => void;
+  obrigatorio?: boolean;
 }
 
 const MedidasCorporais = ({ data, onChange }: MedidasCorporaisProps) => {

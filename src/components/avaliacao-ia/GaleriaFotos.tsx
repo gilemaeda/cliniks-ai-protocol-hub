@@ -94,7 +94,7 @@ const GaleriaFotos = () => {
     try {
       setLoading(true);
       const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-      const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
 
       if (!clinicData || clinicData.length === 0 || !clinicData[0].clinic_id) {
         toast({ title: "Aviso", description: "Clínica não encontrada. Associe seu perfil a uma clínica para ver as fotos." });
@@ -183,7 +183,7 @@ const GaleriaFotos = () => {
   const fetchPatients = useCallback(async () => {
     if (!user) return;
     const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-    const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
     if (!clinicData || clinicData.length === 0) return;
     const clinicId = clinicData[0].clinic_id;
 
@@ -221,7 +221,7 @@ const GaleriaFotos = () => {
       const processedFile = await processImage(newPhotoFile, { maxSizeMB: 2, maxWidthOrHeight: 1920 });
 
       const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-      const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
       if (!clinicData || clinicData.length === 0) throw new Error('Usuário não associado a uma clínica.');
       const clinicId = clinicData[0].clinic_id;
 

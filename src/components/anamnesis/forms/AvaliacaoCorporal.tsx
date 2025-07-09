@@ -10,6 +10,7 @@ import ModernRadioGroup from '@/components/ui/modern-radio-group';
 interface AvaliacaoCorporalProps {
   data: any;
   onChange: (data: any) => void;
+  obrigatorio?: boolean;
 }
 
 const AvaliacaoCorporal = ({ data, onChange }: AvaliacaoCorporalProps) => {

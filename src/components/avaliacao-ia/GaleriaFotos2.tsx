@@ -10,7 +10,7 @@ import { Camera, Search, Filter, Eye, Calendar, User, MapPin, Plus, AlertCircle,
 import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { processImage } from '@/lib/imageProcessor';
+import { Label } from '@/components/ui/label';
 
 interface PatientPhoto {
   id: string;
@@ -24,6 +24,7 @@ interface PatientPhoto {
   patients?: {
     full_name: string;
   };
+  full_name?: string;
 }
 
 interface Patient {
@@ -75,7 +76,7 @@ const GaleriaFotos = () => {
       setLoading(true);
       
       const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-      const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
 
       if (!clinicData || clinicData.length === 0 || !clinicData[0].clinic_id) {
         toast({ title: "Aviso", description: "Clínica não encontrada. Associe seu perfil a uma clínica para ver as fotos." });
@@ -126,7 +127,7 @@ const GaleriaFotos = () => {
 
     try {
       const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-      const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
 
       if (!clinicData || clinicData.length === 0 || !clinicData[0].clinic_id) {
         setPatients([]);
@@ -171,7 +172,7 @@ const GaleriaFotos = () => {
 
     try {
       const { data: clinicDataResult } = await supabase.rpc('get_user_clinic_data', { user_uuid: user.id });
-      const clinicData = clinicDataResult as { clinic_id: string; role: string }[];
+      const clinicData = clinicDataResult as { clinic_id: string; clinic_name: string; professional_id: string | null }[];
 
       if (!clinicData || clinicData.length === 0 || !clinicData[0].clinic_id) {
         throw new Error('Não foi possível identificar a clínica do usuário.');
@@ -194,8 +195,8 @@ const GaleriaFotos = () => {
         console.warn("Não foi possível verificar as dimensões da imagem, continuando com o upload.", e);
       }
 
-      const processedFile = await processImage(newPhotoFile, imageConfig);
-      const file = processedFile || newPhotoFile;
+      // Use original file without processing
+      const file = newPhotoFile;
       const fileExt = file.name.split('.').pop();
       const fileName = `${newPhotoPatientId}-${Date.now()}.${fileExt}`;
       const filePath = `${clinicId}/${fileName}`;

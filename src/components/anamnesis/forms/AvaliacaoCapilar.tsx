@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 interface AvaliacaoCapilarProps {
   data: any;
   onChange: (data: any) => void;
+  obrigatorio?: boolean;
 }
 
 const AvaliacaoCapilar = ({ data, onChange }: AvaliacaoCapilarProps) => {

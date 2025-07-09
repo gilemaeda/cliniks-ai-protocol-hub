@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 interface EstiloDeVidaProps {
   data: any;
   onChange: (data: any) => void;
+  obrigatorio?: boolean;
 }
 
 const EstiloDeVida = ({ data, onChange }: EstiloDeVidaProps) => {

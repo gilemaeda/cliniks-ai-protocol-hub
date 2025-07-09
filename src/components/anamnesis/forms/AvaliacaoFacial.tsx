@@ -9,6 +9,7 @@ import ModernRadioGroup from '@/components/ui/modern-radio-group';
 interface AvaliacaoFacialProps {
   data: Record<string, any>;
   onChange: (data: Record<string, any>) => void;
+  obrigatorio?: boolean;
 }
 
 const AvaliacaoFacial = ({ data, onChange }: AvaliacaoFacialProps) => {

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 interface HistoricoSaudeGeralProps {
   data: any;
   onChange: (data: any) => void;
+  obrigatorio?: boolean;
 }
 
 const HistoricoSaudeGeral = ({ data, onChange }: HistoricoSaudeGeralProps) => {

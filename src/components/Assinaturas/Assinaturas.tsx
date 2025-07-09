@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useClinic } from '@/hooks/useClinic';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Check, AlertTriangle, CreditCard, Calendar, DollarSign, RefreshCw, Trash2, Loader2, AlertCircle, ArrowUpCircle } from 'lucide-react';
@@ -35,8 +35,8 @@ interface Subscription {
   asaas_subscription_id: string;
   status: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'CANCELED' | 'EXPIRED';
   plan_name: string;
-  plan_value: number;
-  plan_cycle: 'MONTHLY' | 'YEARLY';
+  value: number;
+  cycle: 'MONTHLY' | 'YEARLY';
   billing_type: 'BOLETO' | 'CREDIT_CARD' | 'PIX';
   created_at: string;
   updated_at: string;
@@ -83,8 +83,8 @@ export const Assinaturas: React.FC = () => {
     queryKey: ['subscription', clinic?.id],
     queryFn: () => fetchSubscription(clinic!.id),
     enabled: !!clinic,
-    refetchInterval: (data) => {
-      return data?.status === 'PENDING' ? 5000 : false;
+    refetchInterval: (query) => {
+      return query.state.data?.status === 'PENDING' ? 5000 : false;
     },
   });
 
@@ -204,7 +204,7 @@ export const Assinaturas: React.FC = () => {
     }
 
     const planDetails = plans.find(p => p.name.toLowerCase() === subscription.plan_name?.trim().toLowerCase());
-    const displayValue = subscription.asaas_data?.value ?? subscription.plan_value ?? planDetails?.price ?? 0;
+    const displayValue = subscription.asaas_data?.value ?? subscription.value ?? planDetails?.price ?? 0;
 
     return (
       <Card>
@@ -223,7 +223,7 @@ export const Assinaturas: React.FC = () => {
           <div><p className="font-bold">Status</p>{getStatusBadge(subscription.status, 'subscription')}</div>
           <div><p className="font-bold">Plano</p><p>{subscription.plan_name}</p></div>
           <div><p className="font-bold">Valor</p><p className="flex items-center"><DollarSign className="h-4 w-4 mr-1" />{formatCurrency(displayValue)}</p></div>
-          <div><p className="font-bold">Ciclo</p><p>{subscription.plan_cycle === 'MONTHLY' ? 'Mensal' : 'Anual'}</p></div>
+          <div><p className="font-bold">Ciclo</p><p>{subscription.cycle === 'MONTHLY' ? 'Mensal' : 'Anual'}</p></div>
           <div><p className="font-bold">Pagamento</p><p className="flex items-center"><CreditCard className="h-4 w-4 mr-1" />{subscription.billing_type.replace('_', ' ')}</p></div>
           <div><p className="font-bold">Próximo Vencimento</p><p className="flex items-center"><Calendar className="h-4 w-4 mr-1" />{formatDate(subscription.next_due_date)}</p></div>
           {subscription.latest_payment && <><div className="col-span-1"><p className="font-bold">Último Pagamento</p><p>{formatDate(subscription.latest_payment.paymentDate)}</p></div><div className="col-span-1"><p className="font-bold">Status Pagamento</p>{getStatusBadge(subscription.latest_payment.status, 'payment')}</div></>}
@@ -238,7 +238,7 @@ export const Assinaturas: React.FC = () => {
             </div>
           )}
           <div className="flex justify-between items-center w-full">
-            {subscription.status === 'ACTIVE' && subscription.plan_cycle === 'MONTHLY' && <Button onClick={handleUpgrade} className="bg-green-500 hover:bg-green-600"><ArrowUpCircle className="h-4 w-4 mr-2" />Fazer Upgrade para Anual</Button>}
+            {subscription.status === 'ACTIVE' && subscription.cycle === 'MONTHLY' && <Button onClick={handleUpgrade} className="bg-green-500 hover:bg-green-600"><ArrowUpCircle className="h-4 w-4 mr-2" />Fazer Upgrade para Anual</Button>}
             {subscription.status !== 'CANCELED' && <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" />Cancelar Assinatura</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Cancelamento</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Sua assinatura permanecerá ativa até o final do ciclo de faturamento atual.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Voltar</AlertDialogCancel><AlertDialogAction onClick={cancelSubscription} disabled={isCanceling}>{isCanceling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cancelando...</> : 'Confirmar'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
           </div>
         </CardFooter>

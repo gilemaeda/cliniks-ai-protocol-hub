@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface Subscription {
+interface AdminSubscription {
   id: string;
   clinic_id: string;
   asaas_customer_id: string;
@@ -41,20 +41,20 @@ interface Subscription {
   clinics: {
     name: string;
     cnpj: string;
-    profiles: {
+    profiles: Array<{
       full_name: string;
       email: string;
-    } | null;
-  } | null;
+    }>;
+  };
 }
 
 const AdminAssinaturas = () => {
   const { toast } = useToast();
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
+  const [filteredSubscriptions, setFilteredSubscriptions] = useState<AdminSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
-  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<AdminSubscription | null>(null);
   // Estados para controlar os diálogos
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
