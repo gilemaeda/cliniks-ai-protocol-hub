@@ -1,241 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
-import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Clipboard, MessageSquare, Stethoscope, Camera, Brain, Building2, Wrench } from 'lucide-react';
+import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Clipboard, MessageSquare, Stethoscope, Camera } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-
-// Importar imagens padrão
-import avaliacaoFacialImg from '@/assets/avaliacao-facial.jpg';
-import avaliacaoCorporalImg from '@/assets/avaliacao-corporal.jpg';
-import avaliacaoCapilarImg from '@/assets/avaliacao-capilar.jpg'; 
-import protocolosImg from '@/assets/protocolos.jpg';
-import historicoAvaliacoesImg from '@/assets/historico-avaliacoes.jpg';
-import recursosImg from '@/assets/recursos.jpg';
+import { Link } from 'react-router-dom';
 
 interface ToolCard {
   title: string;
   image: string;
   route: string;
   section: string;
-  id: string;
-}
-
-interface ClinicStatistics {
-  assessments: number;
-  professionals: number;
-  patients: number;
-  photos: number;
-  protocols: number;
-  resources: number;
 }
 
 const NetflixStyleDashboard = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { clinic } = useClinic();
   const { theme, setTheme } = useTheme();
-  const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
-  const [toolImages, setToolImages] = useState<Record<string, string>>({});
-  const [stats, setStats] = useState<ClinicStatistics>({
-    assessments: 0,
-    professionals: 0,
-    patients: 0,
-    photos: 0,
-    protocols: 0,
-    resources: 0
-  });
-  const [loading, setLoading] = useState(true);
 
-  // Configuração dos cards de estatísticas
-  const statCards = [
-    {
-      title: 'Pacientes',
-      value: stats.patients,
-      icon: Building2,
-      color: 'text-purple-400',
-      description: 'Pacientes cadastrados'
-    },
-    {
-      title: 'Protocolos',
-      value: stats.protocols,
-      icon: FileText,
-      color: 'text-pink-400',
-      description: 'Protocolos criados'
-    },
-    {
-      title: 'Avaliações',
-      value: stats.assessments,
-      icon: Brain,
-      color: 'text-purple-400',
-      description: 'Avaliações realizadas'
-    },
-    {
-      title: 'Profissionais',
-      value: stats.professionals,
-      icon: Users,
-      color: 'text-pink-400',
-      description: 'Profissionais ativos'
-    },
-    {
-      title: 'Recursos',
-      value: stats.resources,
-      icon: Wrench,
-      color: 'text-purple-400',
-      description: 'Equipamentos e produtos'
-    },
-    {
-      title: 'Fotos',
-      value: stats.photos,
-      icon: Camera,
-      color: 'text-pink-400',
-      description: 'Fotos no sistema'
-    }
+  const stats = [
+    { icon: Users, label: 'Pacientes', value: 850, color: 'text-purple-400' },
+    { icon: FileText, label: 'Protocolos', value: 120, color: 'text-pink-400' },
+    { icon: Clipboard, label: 'Avaliações', value: 250, color: 'text-purple-400' },
+    { icon: MessageSquare, label: 'Anamneses', value: 40, color: 'text-pink-400' },
+    { icon: Stethoscope, label: 'Profissionais', value: 18, color: 'text-purple-400' },
+    { icon: Camera, label: 'Fotos', value: 670, color: 'text-pink-400' },
   ];
 
-  // Função para carregar imagens do carrossel da clínica
-  const loadCarouselImages = async () => {
-    if (!clinic?.id) return;
-
-    try {
-      const images: string[] = [];
-      
-      // Adicionar banner da clínica se existir
-      if (clinic.banner_url) {
-        images.push(clinic.banner_url);
-      }
-
-      // Buscar imagens adicionais do carrossel
-      const { data: carouselData } = await supabase
-        .from('clinic_carousel_images')
-        .select('image_url')
-        .eq('clinic_id', clinic.id)
-        .order('sort_order', { ascending: true });
-
-      if (carouselData && carouselData.length > 0) {
-        const additionalImages = carouselData.map(item => item.image_url);
-        images.push(...additionalImages);
-      }
-
-      // Se não houver imagens, usar placeholder
-      if (images.length === 0) {
-        images.push('/placeholder.svg');
-      }
-
-      setCarouselImages(images);
-    } catch (error) {
-      console.error('Erro ao carregar imagens do carrossel:', error);
-      setCarouselImages(['/placeholder.svg']);
-    }
-  };
-
-  // Imagens padrão das ferramentas
-  const defaultToolImages: Record<string, string> = {
-    'avaliacao-facial': avaliacaoFacialImg,
-    'avaliacao-corporal': avaliacaoCorporalImg,
-    'avaliacao-capilar': avaliacaoCapilarImg,
-    'protocolos': protocolosImg,
-    'historico-avaliacoes': historicoAvaliacoesImg,
-    'recursos': recursosImg,
-    'pacientes': '/placeholder.svg',
-    'anamneses': '/placeholder.svg',
-    'galeria': '/placeholder.svg',
-    'portal': '/placeholder.svg',
-    'configuracao-clinica': '/placeholder.svg',
-    'assinaturas': '/placeholder.svg'
-  };
-
-  // Função para carregar imagens customizadas das ferramentas
-  const loadToolImages = async () => {
-    if (!clinic?.id) return;
-
-    try {
-      const { data } = await supabase
-        .from('dashboard_card_images')
-        .select('card_id, image_url')
-        .eq('clinic_id', clinic.id);
-
-      if (data && data.length > 0) {
-        const customImages: Record<string, string> = {};
-        data.forEach(item => {
-          customImages[item.card_id] = item.image_url;
-        });
-        setToolImages({ ...defaultToolImages, ...customImages });
-      } else {
-        setToolImages(defaultToolImages);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar imagens das ferramentas:', error);
-      setToolImages(defaultToolImages);
-    }
-  };
-
-  // Função para buscar estatísticas da clínica
-  const fetchStatistics = async () => {
-    if (!user || !profile || !profile.clinic_id) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('get_clinic_statistics');
-
-      if (error) {
-        console.error('Erro ao chamar função get_clinic_statistics:', error);
-      } else if (data) {
-        setStats(data as any);
-      }
-    } catch (error) {
-      console.error('Erro inesperado ao buscar estatísticas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Carregar dados quando a clínica estiver disponível
-  useEffect(() => {
-    loadCarouselImages();
-    loadToolImages();
-    if (profile) {
-      fetchStatistics();
-    }
-  }, [clinic?.id, profile]);
+  const carouselImages = [
+    '/placeholder.svg',
+    '/placeholder.svg',
+    '/placeholder.svg',
+  ];
 
   const toolSections = [
     {
       title: 'Inteligência Artificial',
       color: 'text-purple-400',
       tools: [
-        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-ia/facial', section: 'ai', id: 'avaliacao-facial' },
-        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-ia/corporal', section: 'ai', id: 'avaliacao-corporal' },
-        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-ia/capilar', section: 'ai', id: 'avaliacao-capilar' },
-        { title: 'Protocolos Personalizados', image: toolImages['protocolos'] || '/placeholder.svg', route: '/protocolos-personalizados', section: 'ai', id: 'protocolos' },
+        { title: 'Avaliação Facial', image: '/placeholder.svg', route: '/avaliacao-facial', section: 'ai' },
+        { title: 'Avaliação Corporal', image: '/placeholder.svg', route: '/avaliacao-corporal', section: 'ai' },
+        { title: 'Avaliação Capilar', image: '/placeholder.svg', route: '/avaliacao-capilar', section: 'ai' },
+        { title: 'Protocolos Personalizados', image: '/placeholder.svg', route: '/protocolos', section: 'ai' },
       ]
     },
     {
       title: 'Gerenciamento da Clínica',
       color: 'text-pink-400',
       tools: [
-        { title: 'Estatísticas da Clínica', image: toolImages['historico-avaliacoes'] || '/placeholder.svg', route: '/estatisticas-clinica', section: 'management', id: 'estatisticas-clinica' },
-        { title: 'Recursos da Clínica', image: toolImages['recursos'] || '/placeholder.svg', route: '/central-recursos', section: 'management', id: 'recursos' },
-        { title: 'Pacientes', image: toolImages['pacientes'] || '/placeholder.svg', route: '/patients', section: 'management', id: 'pacientes' },
-        { title: 'Anamneses', image: toolImages['anamneses'] || '/placeholder.svg', route: '/anamneses', section: 'management', id: 'anamneses' },
-        { title: 'Galeria de Fotos', image: toolImages['galeria'] || '/placeholder.svg', route: '/galeria-fotos', section: 'management', id: 'galeria' },
+        { title: 'Histórico de Avaliações', image: '/placeholder.svg', route: '/historico-avaliacoes', section: 'management' },
+        { title: 'Recursos', image: '/placeholder.svg', route: '/recursos', section: 'management' },
+        { title: 'Pacientes', image: '/placeholder.svg', route: '/pacientes', section: 'management' },
+        { title: 'Anamneses', image: '/placeholder.svg', route: '/anamneses', section: 'management' },
+        { title: 'Galeria de Fotos', image: '/placeholder.svg', route: '/galeria', section: 'management' },
       ]
     },
     {
       title: 'Configurações e Suporte',
       color: 'text-teal-400',
       tools: [
-        { title: 'Chat IA', image: toolImages['portal'] || '/placeholder.svg', route: '/chat-ia', section: 'settings', id: 'chat-ia' },
-        { title: 'Configurações da Clínica', image: toolImages['configuracao-clinica'] || '/placeholder.svg', route: '/configuracao-clinica', section: 'settings', id: 'configuracao-clinica' },
-        { title: 'Assinaturas e Planos', image: toolImages['assinaturas'] || '/placeholder.svg', route: '/assinaturas', section: 'settings', id: 'assinaturas' },
+        { title: 'Portal Cliniks', image: '/placeholder.svg', route: '/portal', section: 'settings' },
+        { title: 'Configurações da Clínica', image: '/placeholder.svg', route: '/configuracao-clinica', section: 'settings' },
+        { title: 'Assinaturas e Planos', image: '/placeholder.svg', route: '/assinaturas', section: 'settings' },
       ]
     }
   ];
@@ -271,7 +100,7 @@ const NetflixStyleDashboard = () => {
           <img 
             src="/lovable-uploads/d2f2cf36-d805-46d2-8805-9f5753c736cb.png" 
             alt="Cliniks IA" 
-            className="h-12 w-auto object-contain"
+            className="h-8 w-auto"
           />
         </div>
         
@@ -279,23 +108,11 @@ const NetflixStyleDashboard = () => {
           <Button variant="ghost" size="sm" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          <button 
-            onClick={() => {
-              if (profile?.role === 'clinic_owner') {
-                navigate('/configuracao-clinica');
-              } else {
-                navigate('/configuracao-profissional');
-              }
-            }}
-            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:scale-105 transition-transform"
-            title="Configurações do perfil"
-          >
-            <img 
-              src={clinic?.logo_url || "/lovable-uploads/ed86d62a-a928-44f7-8e5f-ec4200aedbb3.png"} 
-              alt="Logo da Clínica" 
-              className="w-8 h-8 rounded-full object-contain"
-            />
-          </button>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+            <span className="text-white text-sm font-bold">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -305,42 +122,24 @@ const NetflixStyleDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Statistics */}
           <div className="lg:col-span-1">
-            {loading ? (
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Card key={i} className="bg-card/50 backdrop-blur-sm border-border/50">
-                    <CardContent className="p-4">
-                      <div className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {statCards.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <Card key={index} className="bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-all duration-300">
-                      <CardContent className="p-4 flex items-center space-x-3">
-                        <IconComponent className={`h-6 w-6 ${stat.color}`} />
-                        <div>
-                          <p className="text-2xl font-bold">{stat.value}</p>
-                          <p className="text-sm text-muted-foreground">{stat.title}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((stat, index) => (
+                <Card key={index} className="bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-all duration-300">
+                  <CardContent className="p-4 flex items-center space-x-3">
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    <div>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
           {/* Carousel */}
           <div className="lg:col-span-2">
-            <div className="relative rounded-lg overflow-hidden aspect-[16/7] bg-card/30 backdrop-blur-sm">
+            <div className="relative rounded-lg overflow-hidden aspect-video bg-card/30 backdrop-blur-sm">
               <img 
                 src={carouselImages[carouselIndex]}
                 alt="Banner"
@@ -411,7 +210,7 @@ const NetflixStyleDashboard = () => {
             <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
               {section.tools.map((tool, toolIndex) => (
                 <Link key={toolIndex} to={tool.route}>
-                  <Card className="flex-shrink-0 w-72 h-40 bg-card/50 backdrop-blur-sm border-border/50 hover:scale-105 hover:bg-card/70 transition-all duration-300 cursor-pointer group">
+                  <Card className="flex-shrink-0 w-64 h-36 bg-card/50 backdrop-blur-sm border-border/50 hover:scale-105 hover:bg-card/70 transition-all duration-300 cursor-pointer group">
                     <CardContent className="p-0 h-full relative rounded-lg overflow-hidden">
                       <img 
                         src={tool.image}

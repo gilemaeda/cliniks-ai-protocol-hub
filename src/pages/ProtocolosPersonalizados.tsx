@@ -5,6 +5,8 @@ import { Sparkles, History, ArrowLeft, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ChatProtocoloIA from '@/components/protocolos/ChatProtocoloIA';
 import HistoricoProtocolos from '@/components/protocolos/HistoricoProtocolos';
+import ProtocoloEditor from '@/components/protocolos/ProtocoloEditor';
+import ProtocoloManual from '@/components/protocolos/ProtocoloManual';
 import { Protocol, useProtocolosQuery } from '@/hooks/useProtocolosQuery';
 import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,87 +18,136 @@ const ProtocolosPersonalizados = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('chat-ia');
   const [editingProtocol, setEditingProtocol] = useState<Partial<Protocol> | null>(null);
+  const { data: protocols, isLoading, error, refetch } = useProtocolosQuery(user?.id);
 
-  const { data: protocols = [], isLoading, error, refetch: refetchProtocols } = useProtocolosQuery(user?.id);
+  const handleProtocolGenerated = async (protocolContent: string) => {
+    if (!user?.id) {
+      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { data: clinicData, error: rpcError } = await supabase
+        .rpc('get_user_clinic_data', { user_uuid: user.id });
+
+      if (rpcError || !clinicData || clinicData.length === 0) {
+        throw new Error(rpcError?.message || 'Dados da clínica não encontrados.');
+      }
+      
+      const clinicId = clinicData[0].clinic_id;
+
+      const newProtocol: Partial<Protocol> = {
+        name: 'Protocolo via Chat',
+        description: 'Protocolo gerado a partir da conversa com a IA.',
+        content: protocolContent,
+        clinic_id: clinicId,
+      };
+      setEditingProtocol(newProtocol);
+      setActiveTab('editor');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+      toast({ title: "Erro ao buscar dados da clínica", description: errorMessage, variant: "destructive" });
+    }
+  };
+
+  const handleProtocolCreated = (protocol: Partial<Protocol>) => {
+    setEditingProtocol(protocol);
+    setActiveTab('editor');
+  };
+
+  const handleBackToNew = () => {
+    setEditingProtocol(null);
+    setActiveTab('chat-ia');
+  };
 
   const handleEditProtocol = (protocol: Protocol) => {
     setEditingProtocol(protocol);
     setActiveTab('editor');
   };
 
-  const handleNewProtocol = () => {
-    setEditingProtocol({});
-    setActiveTab('editor');
-  };
-
-  const handleManualProtocol = () => {
-    setActiveTab('manual');
-  };
-
-  const handleGoBack = () => {
-    navigate('/dashboard');
-  };
-
-  const handleSaveProtocol = async (protocolData: any) => {
-    // Simplified protocol saving - removed for now
-    toast({ title: "Funcionalidade em desenvolvimento" });
+  const handleSaveProtocol = (savedProtocol: Protocol) => {
+    setEditingProtocol(null);
+    refetch(); // Atualiza a lista de protocolos
+    setActiveTab('historico');
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={handleGoBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Protocolos Personalizados</h1>
-            <p className="text-muted-foreground">
-              Crie e gerencie protocolos estéticos personalizados com IA
-            </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar ao Dashboard
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Protocolos Personalizados
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 text-lg">
+                  Crie protocolos únicos com inteligência artificial
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="chat-ia" className="flex items-center space-x-2">
+              <MessageSquare className="h-4 w-4" />
+              <span>Protocolo Chat IA</span>
+            </TabsTrigger>
+            <TabsTrigger value="manual" className="flex items-center space-x-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Manual</span>
+            </TabsTrigger>
+            <TabsTrigger value="editor" className="flex items-center space-x-2" disabled={!editingProtocol}>
+              <span>Editor</span>
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="flex items-center space-x-2">
+              <History className="h-4 w-4" />
+              <span>Histórico</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="chat-ia">
+            <ChatProtocoloIA onProtocolGenerated={handleProtocolGenerated} />
+          </TabsContent>
+
+          <TabsContent value="manual">
+            <ProtocoloManual onProtocolCreated={handleProtocolCreated} />
+          </TabsContent>
+
+          <TabsContent value="editor">
+            {editingProtocol ? (
+              <ProtocoloEditor 
+                protocol={editingProtocol} 
+                onBack={handleBackToNew}
+                onSave={handleSaveProtocol}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">
+                  Gere um protocolo primeiro para poder editá-lo
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="historico">
+            <HistoricoProtocolos 
+              protocols={protocols || []} 
+              isLoading={isLoading}
+              error={error}
+              onEditProtocol={handleEditProtocol} 
+              refetchProtocols={refetch}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="chat-ia" className="flex items-center space-x-2">
-            <Sparkles className="h-4 w-4" />
-            <span>Chat IA</span>
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="flex items-center space-x-2">
-            <History className="h-4 w-4" />
-            <span>Histórico</span>
-          </TabsTrigger>
-          <TabsTrigger value="manual" className="flex items-center space-x-2">
-            <MessageSquare className="h-4 w-4" />
-            <span>Manual</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="chat-ia" className="space-y-6">
-          <ChatProtocoloIA onProtocolGenerated={(protocol) => console.log('Protocol generated:', protocol)} />
-        </TabsContent>
-
-        <TabsContent value="historico" className="space-y-6">
-          <HistoricoProtocolos
-            protocols={protocols}
-            isLoading={isLoading}
-            error={error}
-            refetchProtocols={refetchProtocols}
-            onEditProtocol={handleEditProtocol}
-          />
-        </TabsContent>
-
-        <TabsContent value="manual" className="space-y-6">
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold mb-2">Protocolo Manual</h3>
-            <p className="text-muted-foreground">Esta funcionalidade estará disponível em breve.</p>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };

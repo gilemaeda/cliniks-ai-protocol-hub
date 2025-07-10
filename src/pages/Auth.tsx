@@ -137,6 +137,8 @@ const Auth = () => {
           full_name: fullName,
           cpf,
           phone,
+          clinic_name: clinicName,
+          cnpj,
           role: 'clinic_owner'
         });
         

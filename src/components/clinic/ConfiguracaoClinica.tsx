@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
 import { Upload, Building, Palette, Bell, Save, Loader2 } from 'lucide-react';
-// import ConfiguracaoPerfil from '@/components/profile/ConfiguracaoPerfil';
+import ConfiguracaoPerfil from '@/components/profile/ConfiguracaoPerfil';
 
 const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
@@ -537,7 +537,8 @@ const ConfiguracaoClinica = () => {
 
       </div>
 
-      {/* Seção Perfil do Proprietário - Removido temporariamente */}
+      {/* Seção Perfil do Proprietário */}
+      <ConfiguracaoPerfil />
 
       {/* Botão Salvar */}
       <div className="flex justify-end">
