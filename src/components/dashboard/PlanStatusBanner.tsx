@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle, Info, Zap } from 'lucide-react';
-import { PlanStatus } from '@/types/clinic';
+import { PlanStatus } from '@/contexts/ClinicContext';
 
 interface PlanStatusBannerProps {
   status: PlanStatus;

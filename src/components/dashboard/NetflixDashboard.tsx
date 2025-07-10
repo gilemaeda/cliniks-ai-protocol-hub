@@ -100,7 +100,7 @@ const NetflixDashboard = () => {
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
           <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg" />
+            <AvatarImage src={profile?.avatar_url} />
             <AvatarFallback>{profile?.full_name?.[0]}</AvatarFallback>
           </Avatar>
         </div>
