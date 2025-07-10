@@ -216,8 +216,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     profile,
     loading,
     subscriptionStatus,
-    signUp: authService.signUp,
-    signIn: authService.signIn,
+    signUp: authService.signUp as any,
+    signIn: authService.signIn as any,
     signOut,
     refreshSubscriptionStatus,
   };

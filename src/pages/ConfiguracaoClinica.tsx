@@ -1,11 +1,10 @@
-
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, ArrowLeft, Moon, Sun } from 'lucide-react';
+import { Building2, Users, ArrowLeft } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfiguracaoClinica from '@/components/clinic/ConfiguracaoClinica';
-import GerenciarProfissionais from '@/components/clinic/GerenciarProfissionais';
 import { useAuth } from '@/hooks/auth/authContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -40,7 +39,7 @@ const ConfiguracaoClinicaPage = () => {
                   Configuração da Clínica
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 text-lg">
-                  Gerencie as configurações e profissionais da sua clínica
+                  Gerencie as configurações da sua clínica
                 </p>
               </div>
             </div>
@@ -51,23 +50,15 @@ const ConfiguracaoClinicaPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="configuracao" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
               <span>Configuração</span>
-            </TabsTrigger>
-            <TabsTrigger value="profissionais" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Profissionais</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="configuracao">
             <ConfiguracaoClinica />
-          </TabsContent>
-
-          <TabsContent value="profissionais">
-            <GerenciarProfissionais />
           </TabsContent>
         </Tabs>
       </div>
