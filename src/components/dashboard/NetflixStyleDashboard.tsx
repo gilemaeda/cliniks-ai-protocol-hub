@@ -212,28 +212,28 @@ const NetflixStyleDashboard = () => {
       title: 'Inteligência Artificial',
       color: 'text-purple-400',
       tools: [
-        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-facial', section: 'ai', id: 'avaliacao-facial' },
-        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-corporal', section: 'ai', id: 'avaliacao-corporal' },
-        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-capilar', section: 'ai', id: 'avaliacao-capilar' },
-        { title: 'Protocolos Personalizados', image: toolImages['protocolos'] || '/placeholder.svg', route: '/protocolos', section: 'ai', id: 'protocolos' },
+        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-facial' },
+        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-corporal' },
+        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-capilar' },
+        { title: 'Protocolos Personalizados', image: toolImages['protocolos'] || '/placeholder.svg', route: '/protocolos-personalizados', section: 'ai', id: 'protocolos' },
       ]
     },
     {
       title: 'Gerenciamento da Clínica',
       color: 'text-pink-400',
       tools: [
-        { title: 'Histórico de Avaliações', image: toolImages['historico-avaliacoes'] || '/placeholder.svg', route: '/historico-avaliacoes', section: 'management', id: 'historico-avaliacoes' },
-        { title: 'Recursos', image: toolImages['recursos'] || '/placeholder.svg', route: '/recursos', section: 'management', id: 'recursos' },
-        { title: 'Pacientes', image: toolImages['pacientes'] || '/placeholder.svg', route: '/pacientes', section: 'management', id: 'pacientes' },
+        { title: 'Estatísticas da Clínica', image: toolImages['historico-avaliacoes'] || '/placeholder.svg', route: '/estatisticas-clinica', section: 'management', id: 'estatisticas-clinica' },
+        { title: 'Recursos da Clínica', image: toolImages['recursos'] || '/placeholder.svg', route: '/central-recursos', section: 'management', id: 'recursos' },
+        { title: 'Pacientes', image: toolImages['pacientes'] || '/placeholder.svg', route: '/patients', section: 'management', id: 'pacientes' },
         { title: 'Anamneses', image: toolImages['anamneses'] || '/placeholder.svg', route: '/anamneses', section: 'management', id: 'anamneses' },
-        { title: 'Galeria de Fotos', image: toolImages['galeria'] || '/placeholder.svg', route: '/galeria', section: 'management', id: 'galeria' },
+        { title: 'Galeria de Fotos', image: toolImages['galeria'] || '/placeholder.svg', route: '/galeria-fotos', section: 'management', id: 'galeria' },
       ]
     },
     {
       title: 'Configurações e Suporte',
       color: 'text-teal-400',
       tools: [
-        { title: 'Portal Cliniks', image: toolImages['portal'] || '/placeholder.svg', route: '/portal', section: 'settings', id: 'portal' },
+        { title: 'Chat IA', image: toolImages['portal'] || '/placeholder.svg', route: '/chat-ia', section: 'settings', id: 'chat-ia' },
         { title: 'Configurações da Clínica', image: toolImages['configuracao-clinica'] || '/placeholder.svg', route: '/configuracao-clinica', section: 'settings', id: 'configuracao-clinica' },
         { title: 'Assinaturas e Planos', image: toolImages['assinaturas'] || '/placeholder.svg', route: '/assinaturas', section: 'settings', id: 'assinaturas' },
       ]
