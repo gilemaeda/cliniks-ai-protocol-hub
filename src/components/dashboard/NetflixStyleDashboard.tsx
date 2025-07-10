@@ -212,9 +212,9 @@ const NetflixStyleDashboard = () => {
       title: 'Inteligência Artificial',
       color: 'text-purple-400',
       tools: [
-        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-facial' },
-        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-corporal' },
-        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-ia', section: 'ai', id: 'avaliacao-capilar' },
+        { title: 'Avaliação Facial', image: toolImages['avaliacao-facial'] || '/placeholder.svg', route: '/avaliacao-ia/facial', section: 'ai', id: 'avaliacao-facial' },
+        { title: 'Avaliação Corporal', image: toolImages['avaliacao-corporal'] || '/placeholder.svg', route: '/avaliacao-ia/corporal', section: 'ai', id: 'avaliacao-corporal' },
+        { title: 'Avaliação Capilar', image: toolImages['avaliacao-capilar'] || '/placeholder.svg', route: '/avaliacao-ia/capilar', section: 'ai', id: 'avaliacao-capilar' },
         { title: 'Protocolos Personalizados', image: toolImages['protocolos'] || '/placeholder.svg', route: '/protocolos-personalizados', section: 'ai', id: 'protocolos' },
       ]
     },
