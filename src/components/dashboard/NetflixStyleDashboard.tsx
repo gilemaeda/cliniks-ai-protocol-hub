@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
-import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Clipboard, MessageSquare, Stethoscope, Camera } from 'lucide-react';
+import { Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, Users, FileText, Clipboard, MessageSquare, Stethoscope, Camera, Brain, Building2, Wrench } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +24,15 @@ interface ToolCard {
   id: string;
 }
 
+interface ClinicStatistics {
+  assessments: number;
+  professionals: number;
+  patients: number;
+  photos: number;
+  protocols: number;
+  resources: number;
+}
+
 const NetflixStyleDashboard = () => {
   const { user, profile } = useAuth();
   const { clinic } = useClinic();
@@ -33,14 +42,60 @@ const NetflixStyleDashboard = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [carouselImages, setCarouselImages] = useState<string[]>(['/placeholder.svg']);
   const [toolImages, setToolImages] = useState<Record<string, string>>({});
+  const [stats, setStats] = useState<ClinicStatistics>({
+    assessments: 0,
+    professionals: 0,
+    patients: 0,
+    photos: 0,
+    protocols: 0,
+    resources: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    { icon: Users, label: 'Pacientes', value: 850, color: 'text-purple-400' },
-    { icon: FileText, label: 'Protocolos', value: 120, color: 'text-pink-400' },
-    { icon: Clipboard, label: 'Avaliações', value: 250, color: 'text-purple-400' },
-    { icon: MessageSquare, label: 'Anamneses', value: 40, color: 'text-pink-400' },
-    { icon: Stethoscope, label: 'Profissionais', value: 18, color: 'text-purple-400' },
-    { icon: Camera, label: 'Fotos', value: 670, color: 'text-pink-400' },
+  // Configuração dos cards de estatísticas
+  const statCards = [
+    {
+      title: 'Pacientes',
+      value: stats.patients,
+      icon: Building2,
+      color: 'text-purple-400',
+      description: 'Pacientes cadastrados'
+    },
+    {
+      title: 'Protocolos',
+      value: stats.protocols,
+      icon: FileText,
+      color: 'text-pink-400',
+      description: 'Protocolos criados'
+    },
+    {
+      title: 'Avaliações',
+      value: stats.assessments,
+      icon: Brain,
+      color: 'text-purple-400',
+      description: 'Avaliações realizadas'
+    },
+    {
+      title: 'Profissionais',
+      value: stats.professionals,
+      icon: Users,
+      color: 'text-pink-400',
+      description: 'Profissionais ativos'
+    },
+    {
+      title: 'Recursos',
+      value: stats.resources,
+      icon: Wrench,
+      color: 'text-purple-400',
+      description: 'Equipamentos e produtos'
+    },
+    {
+      title: 'Fotos',
+      value: stats.photos,
+      icon: Camera,
+      color: 'text-pink-400',
+      description: 'Fotos no sistema'
+    }
   ];
 
   // Função para carregar imagens do carrossel da clínica
@@ -120,11 +175,37 @@ const NetflixStyleDashboard = () => {
     }
   };
 
-  // Carregar imagens quando a clínica estiver disponível
+  // Função para buscar estatísticas da clínica
+  const fetchStatistics = async () => {
+    if (!user || !profile || !profile.clinic_id) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_clinic_statistics');
+
+      if (error) {
+        console.error('Erro ao chamar função get_clinic_statistics:', error);
+      } else if (data) {
+        setStats(data as any);
+      }
+    } catch (error) {
+      console.error('Erro inesperado ao buscar estatísticas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar dados quando a clínica estiver disponível
   useEffect(() => {
     loadCarouselImages();
     loadToolImages();
-  }, [clinic?.id]);
+    if (profile) {
+      fetchStatistics();
+    }
+  }, [clinic?.id, profile]);
 
   const toolSections = [
     {
@@ -224,19 +305,37 @@ const NetflixStyleDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Statistics */}
           <div className="lg:col-span-1">
-            <div className="grid grid-cols-2 gap-4">
-              {stats.map((stat, index) => (
-                <Card key={index} className="bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-all duration-300">
-                  <CardContent className="p-4 flex items-center space-x-3">
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                    <div>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} className="bg-card/50 backdrop-blur-sm border-border/50">
+                    <CardContent className="p-4">
+                      <div className="animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {statCards.map((stat, index) => {
+                  const IconComponent = stat.icon;
+                  return (
+                    <Card key={index} className="bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-all duration-300">
+                      <CardContent className="p-4 flex items-center space-x-3">
+                        <IconComponent className={`h-6 w-6 ${stat.color}`} />
+                        <div>
+                          <p className="text-2xl font-bold">{stat.value}</p>
+                          <p className="text-sm text-muted-foreground">{stat.title}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Carousel */}
