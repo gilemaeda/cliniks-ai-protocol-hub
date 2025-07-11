@@ -73,7 +73,7 @@ const NetflixDashboard = () => {
       tools: [
         { title: 'Avaliação Facial', path: '/avaliacao-ia?type=facial', image: '/placeholder.svg' },
         { title: 'Avaliação Corporal', path: '/avaliacao-ia?type=corporal', image: '/placeholder.svg' },
-        { title: 'Avaliação Capilar', path: '/avaliacao-ia?type=capilar', image: '/placeholder.svg' },
+        { title: 'Avaliação Capilar', path: '/avaliacao-ia/capilar', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQU5qGWaB3gCyA9yrBWcEDICtvH817pErZuAA&s' },
         { title: 'Protocolos Personalizados', path: '/protocolos-personalizados', image: '/placeholder.svg' }
       ]
     },
