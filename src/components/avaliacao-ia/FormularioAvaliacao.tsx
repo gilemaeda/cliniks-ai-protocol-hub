@@ -898,11 +898,11 @@ const FormularioAvaliacao = ({
 
         {/* Ações */}
         <div className="flex justify-between pt-4">
-          /*
+          {/*
           <Button variant="ghost" onClick={onBack || onCancel}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {onBack ? 'Voltar' : 'Cancelar'}
-          </Button>*/
+          </Button>*/}
 
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
