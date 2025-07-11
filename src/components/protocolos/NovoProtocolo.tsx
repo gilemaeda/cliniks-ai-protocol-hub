@@ -1,5 +1,5 @@
 
-// Removido: ProtocoloManual não existe mais
+import ProtocoloManual from './ProtocoloManual';
 
 interface NovoProtocoloProps {
   onProtocolCreated: (protocol: any) => void;
@@ -8,9 +8,7 @@ interface NovoProtocoloProps {
 const NovoProtocolo = ({ onProtocolCreated }: NovoProtocoloProps) => {
   return (
     <div className="space-y-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500">Protocolo manual em desenvolvimento</p>
-        </div>
+      <ProtocoloManual onProtocolCreated={onProtocolCreated} />
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ClinicProvider } from '@/contexts/ClinicContext';
-// import { AdminProvider } from '@/contexts/AdminProvider';
+import { AdminProvider } from '@/contexts/AdminProvider';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ProtectedAdminRoute from '@/components/ProtectedAdminRoute';
@@ -16,7 +16,7 @@ import TabStateSync from '@/components/TabStateSync';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import AdminLogin from '@/pages/AdminLogin';
-// import AdminPanel from '@/pages/AdminPanel';
+import AdminPanel from '@/pages/AdminPanel';
 import Dashboard from '@/pages/Dashboard';
 import AvaliacaoIA from '@/pages/AvaliacaoIA';
 import ProtocolosPersonalizados from '@/pages/ProtocolosPersonalizados';
@@ -96,7 +96,7 @@ function App() {
             <PageVisibilityManager>
               <AuthProvider>
                 <ClinicProvider>
-                  {/* <AdminProvider> */}
+                  <AdminProvider>
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
@@ -106,8 +106,7 @@ function App() {
                         path="/admin" 
                         element={
                           <ProtectedAdminRoute>
-                            {/* <AdminPanel /> */}
-                            <div>Admin em desenvolvimento</div>
+                            <AdminPanel />
                           </ProtectedAdminRoute>
                         } 
                       />
@@ -307,7 +306,7 @@ function App() {
                         } 
                       />
                     </Routes>
-                  {/* </AdminProvider> */}
+                  </AdminProvider>
                 </ClinicProvider>
               </AuthProvider>
             </PageVisibilityManager>

@@ -1,10 +1,4 @@
 
-const ConfiguracaoProfissionalPage = () => {
-  return (
-    <div className="text-center py-12">
-      <p className="text-gray-500">Configuração de profissional em desenvolvimento</p>
-    </div>
-  );
-};
+import ConfiguracaoProfissional from '@/components/professionals/ConfiguracaoProfissional';
 
-export default ConfiguracaoProfissionalPage;
+export default ConfiguracaoProfissional;

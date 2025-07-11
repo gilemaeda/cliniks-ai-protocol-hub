@@ -73,8 +73,8 @@ const NetflixDashboard = () => {
       tools: [
         { title: 'Avaliação Facial', path: '/avaliacao-ia?type=facial', image: '/placeholder.svg' },
         { title: 'Avaliação Corporal', path: '/avaliacao-ia?type=corporal', image: '/placeholder.svg' },
-        { title: 'Avaliação Capilar', path: '/avaliacao-ia/capilar', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQU5qGWaB3gCyA9yrBWcEDICtvH817pErZuAA&s' },
-        { title: 'Protocolos Personalizados', path: '/protocolos-personalizados', image: 'https://i.ytimg.com/vi/OEPuQI3BgzE/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAQVzvLbR_HTWom0sveVOyUjJmuZg' }
+        { title: 'Avaliação Capilar', path: '/avaliacao-ia?type=capilar', image: '/placeholder.svg' },
+        { title: 'Protocolos Personalizados', path: '/protocolos-personalizados', image: '/placeholder.svg' }
       ]
     },
     {
@@ -131,7 +131,7 @@ const NetflixDashboard = () => {
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
           <Avatar className="h-10 w-10">
-            <AvatarImage src={clinic?.logo_url} />
+            <AvatarImage src={profile?.avatar_url} />
             <AvatarFallback>{profile?.full_name?.[0]}</AvatarFallback>
           </Avatar>
         </div>

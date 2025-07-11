@@ -1,5 +1,5 @@
 
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { User, Session, AuthError, AuthResponse } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
@@ -25,8 +25,8 @@ export interface AuthActions {
     email: string,
     password: string,
     userData: { full_name: string; role?: string; cpf?: string; phone?: string }
-  ) => Promise<any>;
-  signIn: (email: string, password: string) => Promise<any>;
+  ) => Promise<AuthResponse>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
   signOut: () => Promise<{ error: AuthError | null }>;
   refreshSubscriptionStatus: () => Promise<string | null | undefined>;
 }

@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, ArrowLeft, Images } from 'lucide-react';
+import { Building2, Users, ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfiguracaoClinica from '@/components/clinic/ConfiguracaoClinica';
-import GerenciarCarrossel from '@/components/clinic/GerenciarCarrossel';
+import GerenciarProfissionais from '@/components/clinic/GerenciarProfissionais';
 import { useAuth } from '@/hooks/auth/authContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -17,7 +17,7 @@ const ConfiguracaoClinicaPage = () => {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && (tab === 'configuracao' || tab === 'profissionais' || tab === 'carrossel')) {
+    if (tab && (tab === 'configuracao' || tab === 'profissionais')) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -51,14 +51,10 @@ const ConfiguracaoClinicaPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="configuracao" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
               <span>Configuração</span>
-            </TabsTrigger>
-            <TabsTrigger value="carrossel" className="flex items-center space-x-2">
-              <Images className="h-4 w-4" />
-              <span>Carrossel</span>
             </TabsTrigger>
             <TabsTrigger value="profissionais" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
@@ -70,15 +66,8 @@ const ConfiguracaoClinicaPage = () => {
             <ConfiguracaoClinica />
           </TabsContent>
 
-          <TabsContent value="carrossel">
-            <GerenciarCarrossel />
-          </TabsContent>
-
           <TabsContent value="profissionais">
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Gerenciamento de profissionais em desenvolvimento</p>
-            </div>
+            <GerenciarProfissionais />
           </TabsContent>
         </Tabs>
       </div>

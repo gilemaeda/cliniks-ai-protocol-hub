@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/auth/authContext';
 import { Navigate } from 'react-router-dom';
-// import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard'; // Removido
-import NetflixDashboard from '@/components/dashboard/NetflixDashboard';
+import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+import OwnerDashboard from '@/components/dashboard/OwnerDashboard';
 
 // Dashboard original restaurado
 const Dashboard = () => {
@@ -26,14 +26,10 @@ const Dashboard = () => {
 
   // Renderiza o dashboard correto com base no perfil do usuário
   if (profile.role === 'clinic_owner') {
-    return <NetflixDashboard />;
+    return <OwnerDashboard />;
   }
 
-  return (
-    <div className="text-center py-12">
-      <p className="text-gray-500">Dashboard profissional em desenvolvimento</p>
-    </div>
-  );
+  return <ProfessionalDashboard />;
 };
 
 export default Dashboard;

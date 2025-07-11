@@ -9,7 +9,7 @@ import { useClinic } from '@/hooks/useClinic';
 import { useEffect, useState, ElementType } from 'react';
 import { useAccessControl } from '@/hooks/useAccessControl';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-// import PlanStatusBanner from './PlanStatusBanner';
+import PlanStatusBanner from './PlanStatusBanner';
 
 interface Tool {
   id: string;
@@ -151,6 +151,9 @@ const MainTools = () => {
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-br from-white via-[#7f00fa]/5 to-[#fb0082]/5 rounded-xl shadow p-6">
+        {profile?.role === 'clinic_owner' && (
+          <PlanStatusBanner status={planStatus} daysRemaining={trialDaysRemaining} />
+        )}
         <h2 className="text-2xl font-bold mb-2 text-[#424242]">Ferramentas Principais</h2>
         <p className="text-[#424242]/70 mb-6">
           Acesse as principais funcionalidades da plataforma
