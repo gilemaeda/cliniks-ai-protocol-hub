@@ -17,7 +17,7 @@ interface ProfileData {
 }
 
 const ConfiguracaoPerfil = () => {
-  const { user, profile, authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { clinic, planStatus, planStatusLabel, trialDaysRemaining } = useClinic();
   const [profileData, setProfileData] = useState<ProfileData>({});

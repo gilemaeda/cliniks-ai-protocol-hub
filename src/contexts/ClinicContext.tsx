@@ -170,7 +170,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           bannerUrl = signedUrlData?.signedUrl ?? null;
         }
 
-        setClinic({ ...clinicData, logo_url: logoUrl, banner_url: bannerUrl });
+        setClinic({ ...clinicData, logo_url: logoUrl, banner_url: bannerUrl } as any);
       }
     } catch (error) {
       console.error('Erro ao buscar dados da clínica:', error);

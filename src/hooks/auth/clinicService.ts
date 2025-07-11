@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { profileService } from './profileService';
+// import { profileService } from './profileService';
 
 export const clinicService = {
   fixUserRecords: async (userId: string) => {

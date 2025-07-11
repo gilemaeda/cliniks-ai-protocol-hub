@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { Profile } from './auth/types';
 import { authService } from './auth/authService';
-import { profileService } from './auth/profileService';
+// import { profileService } from './auth/profileService';
 import { clinicService } from './auth/clinicService';
 import { AuthContext } from './auth/authContext';
 
@@ -72,45 +72,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         saveToLocalStorage(LOCAL_STORAGE_KEYS.USER, currentSession.user);
         
         try {
-          const profileData = await profileService.fetchProfile(currentSession.user.id);
-          if (profileData) {
-            console.log('Perfil encontrado');
+          // const profileData = await profileService.fetchProfile(currentSession.user.id);
+          // if (profileData) {
+          console.log('Perfil encontrado - carregamento simplificado');
             
             // Verificar se o usuário é proprietário com base nos metadados
             const userMetadata = currentSession.user.user_metadata || {};
             const isOwnerInMetadata = userMetadata.role === 'clinic_owner';
             
             // Se os metadados indicam que é proprietário mas o perfil não, corrigir
-            if (isOwnerInMetadata && profileData.role !== 'clinic_owner') {
-              console.log('Corrigindo role do perfil: deveria ser clinic_owner mas está como', profileData.role);
+            // if (isOwnerInMetadata && profileData.role !== 'clinic_owner') {
+            //   console.log('Corrigindo role do perfil: deveria ser clinic_owner mas está como', profileData.role);
               
               // Atualizar o perfil no banco de dados
-              try {
-                const { data: updatedProfile, error } = await supabase
-                  .from('profiles')
-                  .update({ role: 'clinic_owner' })
-                  .eq('id', profileData.id)
-                  .select()
-                  .single();
+              // try {
+              //   const { data: updatedProfile, error } = await supabase
+              //     .from('profiles')
+              //     .update({ role: 'clinic_owner' })
+              //     .eq('id', profileData.id)
+              //     .select()
+              //     .single();
                   
-                if (error) {
-                  console.error('Erro ao atualizar role do perfil:', error);
-                } else if (updatedProfile) {
-                  console.log('Role do perfil atualizado com sucesso para clinic_owner');
-                  profileData.role = 'clinic_owner';
-                }
-              } catch (updateError) {
-                console.error('Erro ao tentar atualizar role do perfil:', updateError);
-              }
-            }
-            
-            setProfile(profileData);
-            saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, profileData);
+              //   if (error) {
+              //     console.error('Erro ao atualizar role do perfil:', error);
+              //   } else if (updatedProfile) {
+              //     console.log('Role do perfil atualizado com sucesso para clinic_owner');
+              //     profileData.role = 'clinic_owner';
+              //   }
+              // } catch (updateError) {
+              //   console.error('Erro ao tentar atualizar role do perfil:', updateError);
+              // }
+            // }
+            // Corrigir role se necessário
+            // setProfile(profileData);
+            // saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, profileData);
             
             // Forçar status TRIAL para evitar loops
             setSubscriptionStatus('TRIAL');
             saveToLocalStorage(LOCAL_STORAGE_KEYS.SUBSCRIPTION, 'TRIAL');
-          }
+          // }
         } catch (error) {
           console.error('Erro ao carregar perfil:', error);
         }

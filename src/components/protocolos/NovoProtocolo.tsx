@@ -1,5 +1,5 @@
 
-import ProtocoloManual from './ProtocoloManual';
+// import ProtocoloManual from './ProtocoloManual';
 
 interface NovoProtocoloProps {
   onProtocolCreated: (protocol: any) => void;

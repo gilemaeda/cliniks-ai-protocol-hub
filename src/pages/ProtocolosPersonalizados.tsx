@@ -5,9 +5,9 @@ import { Sparkles, History, ArrowLeft, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ChatProtocoloIA from '@/components/protocolos/ChatProtocoloIA';
 import HistoricoProtocolos from '@/components/protocolos/HistoricoProtocolos';
-import ProtocoloEditor from '@/components/protocolos/ProtocoloEditor';
-import ProtocoloManual from '@/components/protocolos/ProtocoloManual';
-import { Protocol, useProtocolosQuery } from '@/hooks/useProtocolosQuery';
+// import ProtocoloEditor from '@/components/protocolos/ProtocoloEditor';
+// import ProtocoloManual from '@/components/protocolos/ProtocoloManual';
+// import { Protocol, useProtocolosQuery } from '@/hooks/useProtocolosQuery';
 import { useAuth } from '@/hooks/auth/authContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,8 +17,8 @@ const ProtocolosPersonalizados = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('chat-ia');
-  const [editingProtocol, setEditingProtocol] = useState<Partial<Protocol> | null>(null);
-  const { data: protocols, isLoading, error, refetch } = useProtocolosQuery(user?.id);
+  const [editingProtocol, setEditingProtocol] = useState<any | null>(null);
+  // const { data: protocols, isLoading, error, refetch } = useProtocolosQuery(user?.id);
 
   const handleProtocolGenerated = async (protocolContent: string) => {
     if (!user?.id) {
@@ -117,34 +117,26 @@ const ProtocolosPersonalizados = () => {
           </TabsContent>
 
           <TabsContent value="manual">
-            <ProtocoloManual onProtocolCreated={handleProtocolCreated} />
+            <div className="text-center py-12">
+              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Manual em desenvolvimento</p>
+            </div>
           </TabsContent>
 
           <TabsContent value="editor">
-            {editingProtocol ? (
-              <ProtocoloEditor 
-                protocol={editingProtocol} 
-                onBack={handleBackToNew}
-                onSave={handleSaveProtocol}
-              />
-            ) : (
-              <div className="text-center py-12">
-                <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">
-                  Gere um protocolo primeiro para poder editá-lo
-                </p>
-              </div>
-            )}
+            <div className="text-center py-12">
+              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">
+                Editor de protocolos em desenvolvimento
+              </p>
+            </div>
           </TabsContent>
 
           <TabsContent value="historico">
-            <HistoricoProtocolos 
-              protocols={protocols || []} 
-              isLoading={isLoading}
-              error={error}
-              onEditProtocol={handleEditProtocol} 
-              refetchProtocols={refetch}
-            />
+            <div className="text-center py-12">
+              <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Histórico em desenvolvimento</p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
