@@ -71,28 +71,28 @@ const NetflixDashboard = () => {
     {
       title: 'Inteligência Artificial',
       tools: [
-        { title: 'Avaliação Facial', path: '/avaliacao-ia/facial', image: 'https://sarahbrasildermato.com.br/wp-content/uploads/2023/07/Paciente-injetando-bioestimuladores-de-colageno-numa-clinica-de-estetica-corporal-e-facial.jpeg' },
-        { title: 'Avaliação Corporal', path: '/avaliacao-ia/corporal', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0KJ2jnhibR57rzU4-aJzwbqaUoVdT-GXe_Q&s' },
+        { title: 'Avaliação Facial', path: '/avaliacao-ia?type=facial', image: '/placeholder.svg' },
+        { title: 'Avaliação Corporal', path: '/avaliacao-ia?type=corporal', image: '/placeholder.svg' },
         { title: 'Avaliação Capilar', path: '/avaliacao-ia/capilar', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQU5qGWaB3gCyA9yrBWcEDICtvH817pErZuAA&s' },
-        { title: 'Protocolos Personalizados', path: '/protocolos-personalizados', image: '/placeholder.svg' }
+        { title: 'Protocolos Personalizados', path: '/protocolos-personalizados', image: 'https://i.ytimg.com/vi/OEPuQI3BgzE/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAQVzvLbR_HTWom0sveVOyUjJmuZg' }
       ]
     },
     {
       title: 'Gerenciamento da Clínica',
       tools: [
-        { title: 'Histórico de Avaliações', path: '/historico-avaliacoes', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUA70O31ZSVOQ_I-sg-a6jzaZ_ZzBYPlmsMQ&s' },
-        { title: 'Recursos', path: '/recursos', image: 'https://cdn.getmidnight.com/a4bab3ce420ea5342f99b468206738eb/2024/05/Iluminacao-de-uma-Clinica-Estetica-de-Luxo.webp' },
-        { title: 'Pacientes', path: '/patients', image: 'https://www.hidoctor.com.br/fmfiles/index.asp/::places::/hidoctorblog/9-dicas-para-aproveitar-ao-maximo-o-prontuario-eletronico-e-otimizar-o-atendimento.jpg' },
-        { title: 'Anamneses', path: '/anamneses', image: 'https://fullfaceacademy.com.br/wp-content/webp-express/webp-images/uploads/2023/08/Capa-Fichas-Premium-Harmonizacao-Facial-8Download-Termo-de-Consentimento-para-BotoxDownload-Ficha-de-AnamneseFormularios-de-Consentimento-Estetico-1024x1024.jpg.webp' },
-        { title: 'Galeria de Fotos', path: '/galeria-fotos', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR43mY97JSHW5eogkOXWVUGUnoycJ0r5Wa_4w&s' }
+        { title: 'Histórico de Avaliações', path: '/historico-avaliacoes', image: '/placeholder.svg' },
+        { title: 'Recursos', path: '/recursos', image: '/placeholder.svg' },
+        { title: 'Pacientes', path: '/patients', image: '/placeholder.svg' },
+        { title: 'Anamneses', path: '/anamneses', image: '/placeholder.svg' },
+        { title: 'Galeria de Fotos', path: '/galeria-fotos', image: '/placeholder.svg' }
       ]
     },
     {
       title: 'Configurações e Suporte',
       tools: [
-        { title: 'Portal Cliniks', path: 'https://cliniks.com.br/', image: 'https://rpfrmclsraiidjlfeonj.supabase.co/storage/v1/object/public/clinic-assets//CLINIKS.COM.BR.jpg' },
-        { title: 'Configurações da Clínica', path: '/configuracao-clinica', image: 'https://png.pngtree.com/png-vector/20190214/ourmid/pngtree-vector-settings-icon-png-image_508256.jpg' },
-        { title: 'Assinaturas e Planos', path: '/assinaturas', image: 'https://aspin.com.br/wp-content/uploads/2022/11/IMAGENS_01-600x250-1.jpg' }
+        { title: 'Portal Cliniks', path: '/portal', image: '/placeholder.svg' },
+        { title: 'Configurações da Clínica', path: '/configuracao-clinica', image: '/placeholder.svg' },
+        { title: 'Assinaturas e Planos', path: '/assinaturas', image: '/placeholder.svg' }
       ]
     }
   ];
