@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { Profile } from './auth/types';
+import { Profile, AuthState, AuthActions } from './auth/types';
 import { authService } from './auth/authService';
 // import { profileService } from './auth/profileService';
 import { clinicService } from './auth/clinicService';
@@ -210,7 +210,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [profile?.clinic_id]);
 
-  const value = {
+  const value: AuthState & AuthActions = {
     user,
     session,
     profile,

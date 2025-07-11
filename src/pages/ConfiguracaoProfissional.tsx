@@ -1,6 +1,4 @@
 
-// import ConfiguracaoProfissional from '@/components/professionals/ConfiguracaoProfissional'; // Removido
-
 const ConfiguracaoProfissionalPage = () => {
   return (
     <div className="text-center py-12">
