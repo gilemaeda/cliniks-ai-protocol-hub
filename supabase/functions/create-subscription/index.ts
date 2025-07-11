@@ -132,7 +132,6 @@ serve(async (req: Request) => {
 
     // 5. SALVAR ASSINATURA NO BANCO DE DADOS
     const { error: insertError } = await supabaseAdmin.from("subscriptions").insert({
-
       clinic_id: clinic_id,
       asaas_subscription_id: subscriptionData.subscription_id,
       status: 'PENDING', // Definitivo: Força o status inicial para PENDING, aguardando confirmação do webhook.
@@ -141,7 +140,7 @@ serve(async (req: Request) => {
       cycle: cycle,
       billing_type: billing_type,
       next_due_date: subscriptionData.next_due_date,
-      payment_url: subscriptionData.payment_url,
+      asaas_payment_link: subscriptionData.payment_url,
     });
 
     if (insertError) {
