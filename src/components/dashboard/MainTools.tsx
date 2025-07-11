@@ -1,8 +1,9 @@
 
+import React, { Suspense, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Clock, Sparkles, Package, Users, Camera, User, Brain, FileText, MessageCircle, History, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/authContext';
 import { useClinic } from '@/hooks/useClinic';
@@ -22,18 +23,46 @@ interface Tool {
   onClick: () => void;
 }
 
-const MainTools = () => {
-  const navigate = useNavigate();
+// Função para navegação segura
+const safeNavigate = (navigate: ReturnType<typeof useNavigate>, path: string) => {
+  try {
+    navigate(path);
+  } catch (error) {
+    console.error('Erro ao navegar:', error);
+    // Se a navegação falhar, tenta recarregar a página com a rota desejada
+    window.location.href = path;
+  }
+};
+
+// Componente interno que usa os hooks
+const MainToolsContent = () => {
+  let navigate: ReturnType<typeof useNavigate>;
+  let location: ReturnType<typeof useLocation>;
+  
+  // Envolver os hooks em try-catch para capturar erros de contexto
+  try {
+    navigate = useNavigate();
+    location = useLocation();
+  } catch (error) {
+    console.error('Erro ao acessar contexto do Router:', error);
+    // Fallback: usar window.location para navegação
+    navigate = ((path: string) => {
+      window.location.href = path;
+    }) as any;
+    location = { pathname: window.location.pathname } as any;
+  }
+
   const { profile } = useAuth();
   const { canAccess, blockReason, isChecking } = useAccessControl();
-  const { planStatus, trialDaysRemaining } = useClinic(); // Mantido para o banner
+  const { planStatus, trialDaysRemaining } = useClinic();
   const [tools, setTools] = useState<Tool[]>([]);
 
+  // Usar useCallback para memoizar as funções de navegação
+  const handleNavigation = useCallback((path: string) => {
+    safeNavigate(navigate, path);
+  }, [navigate]);
+
   useEffect(() => {
-    // Verificar se é proprietário da clínica e se está em período de trial
-    const isClinicOwner = profile?.role === 'clinic_owner';
-    const isInTrial = planStatus === 'TRIAL';
-    
     const baseTools = [
       {
         id: 'avaliacao-facial',
@@ -43,17 +72,17 @@ const MainTools = () => {
         color: 'bg-[#7f00fa]/10',
         badge: 'IA',
         badgeColor: 'bg-[#7f00fa]',
-        onClick: () => navigate('/avaliacao-ia/facial')
+        onClick: () => handleNavigation('/avaliacao-ia/facial')
       },
       {
         id: 'avaliacao-corporal',
-        title: 'Avaliação Corporal',
+        title: 'Avaliação Corporal',  
         description: 'Avaliação corporal inteligente e personalizada',
         icon: Brain,
         color: 'bg-[#fb0082]/10',
         badge: 'IA',
         badgeColor: 'bg-[#fb0082]',
-        onClick: () => navigate('/avaliacao-ia/corporal')
+        onClick: () => handleNavigation('/avaliacao-ia/corporal')
       },
       {
         id: 'avaliacao-capilar',
@@ -63,7 +92,7 @@ const MainTools = () => {
         color: 'bg-[#0ff0b3]/10',
         badge: 'IA',
         badgeColor: 'bg-[#0ff0b3]',
-        onClick: () => navigate('/avaliacao-ia/capilar')
+        onClick: () => handleNavigation('/avaliacao-ia/capilar')
       },
       {
         id: 'chat-ia',
@@ -73,7 +102,7 @@ const MainTools = () => {
         color: 'bg-[#7f00fa]/10',
         badge: 'IA',
         badgeColor: 'bg-[#7f00fa]',
-        onClick: () => navigate('/chat-ia')
+        onClick: () => handleNavigation('/chat-ia')
       },
       {
         id: 'historico-avaliacoes',
@@ -83,7 +112,7 @@ const MainTools = () => {
         color: 'bg-[#424242]/10',
         badge: 'Essencial',
         badgeColor: 'bg-[#424242]',
-        onClick: () => navigate('/avaliacao-ia?tab=historico')
+        onClick: () => handleNavigation('/avaliacao-ia?tab=historico')
       },
       {
         id: 'protocolos',
@@ -93,7 +122,7 @@ const MainTools = () => {
         color: 'bg-[#fb0082]/10',
         badge: 'Premium',
         badgeColor: 'bg-gradient-to-r from-[#7f00fa] to-[#fb0082]',
-        onClick: () => navigate('/protocolos-personalizados')
+        onClick: () => handleNavigation('/protocolos-personalizados')
       },
       {
         id: 'recursos',
@@ -103,7 +132,7 @@ const MainTools = () => {
         color: 'bg-[#0ff0b3]/10',
         badge: 'Essencial',
         badgeColor: 'bg-[#0ff0b3]',
-        onClick: () => navigate('/central-recursos')
+        onClick: () => handleNavigation('/central-recursos')
       },
       {
         id: 'pacientes',
@@ -111,7 +140,7 @@ const MainTools = () => {
         description: 'Gerencie o cadastro e informações dos seus pacientes',
         icon: Users,
         color: 'bg-[#7f00fa]/10',
-        onClick: () => navigate('/patients')
+        onClick: () => handleNavigation('/patients')
       },
       {
         id: 'anamneses',
@@ -121,7 +150,7 @@ const MainTools = () => {
         color: 'bg-[#424242]/10',
         badge: 'Essencial',
         badgeColor: 'bg-[#424242]',
-        onClick: () => navigate('/anamneses')
+        onClick: () => handleNavigation('/anamneses')
       },
       {
         id: 'galeria',
@@ -131,22 +160,12 @@ const MainTools = () => {
         color: 'bg-[#fb0082]/10',
         badge: 'Novo',
         badgeColor: 'bg-[#fb0082]',
-        onClick: () => navigate('/galeria-fotos')
+        onClick: () => handleNavigation('/galeria-fotos')
       }
     ];
 
-    if (profile) {
-      if (profile.role === 'clinic_owner') {
-        setTools(baseTools); // O card de assinatura foi removido conforme solicitado
-      } else if (profile.role === 'professional') {
-        setTools(baseTools); // O card de status do plano foi removido para profissionais
-      } else {
-        setTools(baseTools);
-      }
-    } else {
-      setTools(baseTools);
-    }
-  }, [profile, navigate]);
+    setTools(baseTools);
+  }, [handleNavigation]);
 
   return (
     <div className="space-y-8">
@@ -237,6 +256,22 @@ const MainTools = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Componente principal com fallback para erro de contexto
+const MainTools = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7f00fa] mx-auto mb-4"></div>
+          <p className="text-[#424242]/80">Carregando ferramentas...</p>
+        </div>
+      </div>
+    }>
+      <MainToolsContent />
+    </Suspense>
   );
 };
 
