@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, ArrowLeft, Moon, Sun } from 'lucide-react';
+import { Building2, Users, ArrowLeft, Images } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfiguracaoClinica from '@/components/clinic/ConfiguracaoClinica';
+import GerenciarCarrossel from '@/components/clinic/GerenciarCarrossel';
 import { useAuth } from '@/hooks/auth/authContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -16,7 +17,7 @@ const ConfiguracaoClinicaPage = () => {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && (tab === 'configuracao' || tab === 'profissionais')) {
+    if (tab && (tab === 'configuracao' || tab === 'profissionais' || tab === 'carrossel')) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -50,10 +51,14 @@ const ConfiguracaoClinicaPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="configuracao" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
               <span>Configuração</span>
+            </TabsTrigger>
+            <TabsTrigger value="carrossel" className="flex items-center space-x-2">
+              <Images className="h-4 w-4" />
+              <span>Carrossel</span>
             </TabsTrigger>
             <TabsTrigger value="profissionais" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
@@ -63,6 +68,10 @@ const ConfiguracaoClinicaPage = () => {
 
           <TabsContent value="configuracao">
             <ConfiguracaoClinica />
+          </TabsContent>
+
+          <TabsContent value="carrossel">
+            <GerenciarCarrossel />
           </TabsContent>
 
           <TabsContent value="profissionais">

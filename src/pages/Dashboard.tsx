@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/auth/authContext';
 import { Navigate } from 'react-router-dom';
 // import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard'; // Removido
-import OwnerDashboard from '@/components/dashboard/OwnerDashboard';
+import NetflixDashboard from '@/components/dashboard/NetflixDashboard';
 
 // Dashboard original restaurado
 const Dashboard = () => {
@@ -26,7 +26,7 @@ const Dashboard = () => {
 
   // Renderiza o dashboard correto com base no perfil do usuário
   if (profile.role === 'clinic_owner') {
-    return <OwnerDashboard />;
+    return <NetflixDashboard />;
   }
 
   return (
