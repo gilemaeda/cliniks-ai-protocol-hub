@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/authContext';
+import { useClinic } from '@/hooks/useClinic';
 import { useTheme } from 'next-themes';
 import { 
   Users, FileText, Brain, Camera, Calendar, Settings, 
@@ -10,20 +11,50 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 const NetflixDashboard = () => {
   const { user, profile } = useAuth();
+  const { clinic } = useClinic();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [carouselPaused, setCarouselPaused] = useState(false);
+  const [clinicCarouselImages, setClinicCarouselImages] = useState<string[]>([]);
 
-  // Carousel images
-  const carouselImages = [
+  // Fallback carousel images
+  const fallbackImages = [
     '/lovable-uploads/photo-1605810230434-7631ac76ec81.jpg',
     '/lovable-uploads/photo-1487058792275-0ad4aaf24ca7.jpg',
     '/lovable-uploads/photo-1526374965328-7f61d4dc18c5.jpg'
   ];
+
+  // Load clinic carousel images
+  useEffect(() => {
+    async function loadClinicCarouselImages() {
+      if (!clinic?.id) return;
+
+      const { data: carouselData } = await supabase
+        .from('clinic_carousel_images')
+        .select('image_url')
+        .eq('clinic_id', clinic.id)
+        .order('sort_order', { ascending: true });
+
+      if (carouselData && carouselData.length > 0) {
+        setClinicCarouselImages(carouselData.map(item => item.image_url));
+      } else if (clinic.banner_url) {
+        // Se não há carrossel, mas tem banner, usar o banner
+        setClinicCarouselImages([clinic.banner_url]);
+      } else {
+        // Usar imagens fallback
+        setClinicCarouselImages(fallbackImages);
+      }
+    }
+
+    loadClinicCarouselImages();
+  }, [clinic?.id, clinic?.banner_url]);
+
+  const carouselImages = clinicCarouselImages.length > 0 ? clinicCarouselImages : fallbackImages;
 
   // Statistics data
   const stats = [
@@ -108,19 +139,19 @@ const NetflixDashboard = () => {
 
       <div className="flex gap-8 p-6">
         {/* Left: Statistics */}
-        <div className="w-80 space-y-4">
+        <div className="w-96 space-y-4">
           <h2 className="text-xl font-semibold mb-4">Estatísticas</h2>
-          {stats.map((stat, index) => (
-            <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
-              <div className="flex items-center space-x-3">
-                <stat.icon className={`h-8 w-8 ${stat.color}`} />
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+          <div className="grid grid-cols-4 gap-3">
+            {stats.map((stat, index) => (
+              <Card key={index} className="p-3 hover:shadow-lg transition-shadow">
+                <div className="text-center">
+                  <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
+                  <p className="text-lg font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Right: Carousel and Sections */}

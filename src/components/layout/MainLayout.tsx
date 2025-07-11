@@ -141,16 +141,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
-      {/* Banner global - Agora fora do fluxo principal para ser full-width */}
-      {clinic?.banner_url && (
-        <div className="w-full h-[140px] bg-gray-900">
-          <img
-            src={clinic.banner_url} // O context já trata a URL
-            alt="Banner da Clínica"
-            className="w-full h-full object-cover object-top"
-          />
-        </div>
-      )}
 
       {/* Conteúdo principal */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
