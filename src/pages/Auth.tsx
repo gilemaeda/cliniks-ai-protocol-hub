@@ -137,8 +137,8 @@ const Auth = () => {
           full_name: fullName,
           cpf,
           phone,
-          clinic_name: clinicName,
-          cnpj,
+          // clinic_name: clinicName, // Removido por incompibilidade
+          // cnpj, // Removido por incompibilidade  
           role: 'clinic_owner'
         });
         

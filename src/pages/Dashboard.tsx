@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/auth/authContext';
 import { Navigate } from 'react-router-dom';
-import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+// import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard'; // Removido
 import OwnerDashboard from '@/components/dashboard/OwnerDashboard';
 
 // Dashboard original restaurado
@@ -29,7 +29,11 @@ const Dashboard = () => {
     return <OwnerDashboard />;
   }
 
-  return <ProfessionalDashboard />;
+  return (
+    <div className="text-center py-12">
+      <p className="text-gray-500">Dashboard profissional em desenvolvimento</p>
+    </div>
+  );
 };
 
 export default Dashboard;

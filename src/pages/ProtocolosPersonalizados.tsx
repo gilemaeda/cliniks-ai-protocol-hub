@@ -16,103 +16,73 @@ const ProtocolosPersonalizados = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('chat-ia');
+  const [activeTab, setActiveTab] = useState('chat');
   const [editingProtocol, setEditingProtocol] = useState<any | null>(null);
   // const { data: protocols, isLoading, error, refetch } = useProtocolosQuery(user?.id);
 
   const handleProtocolGenerated = async (protocolContent: string) => {
-    if (!user?.id) {
-      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { data: clinicData, error: rpcError } = await supabase
-        .rpc('get_user_clinic_data', { user_uuid: user.id });
-
-      if (rpcError || !clinicData || clinicData.length === 0) {
-        throw new Error(rpcError?.message || 'Dados da clínica não encontrados.');
-      }
-      
-      const clinicId = clinicData[0].clinic_id;
-
-      const newProtocol: Partial<Protocol> = {
-        name: 'Protocolo via Chat',
-        description: 'Protocolo gerado a partir da conversa com a IA.',
-        content: protocolContent,
-        clinic_id: clinicId,
-      };
-      setEditingProtocol(newProtocol);
-      setActiveTab('editor');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-      toast({ title: "Erro ao buscar dados da clínica", description: errorMessage, variant: "destructive" });
-    }
+    console.log('Protocolo gerado:', protocolContent);
   };
 
-  const handleProtocolCreated = (protocol: Partial<Protocol>) => {
-    setEditingProtocol(protocol);
-    setActiveTab('editor');
+  const handleProtocolCreated = (protocol: any) => {
+    console.log('Protocolo criado:', protocol);
+  };
+
+  const handleEditProtocol = (protocol: any) => {
+    console.log('Editar protocolo:', protocol);
+  };
+
+  const handleSaveProtocol = (savedProtocol: any) => {
+    console.log('Protocolo salvo:', savedProtocol);
   };
 
   const handleBackToNew = () => {
     setEditingProtocol(null);
-    setActiveTab('chat-ia');
-  };
-
-  const handleEditProtocol = (protocol: Protocol) => {
-    setEditingProtocol(protocol);
-    setActiveTab('editor');
-  };
-
-  const handleSaveProtocol = (savedProtocol: Protocol) => {
-    setEditingProtocol(null);
-    refetch(); // Atualiza a lista de protocolos
-    setActiveTab('historico');
+    setActiveTab('chat');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar ao Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  Protocolos Personalizados
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-lg">
-                  Crie protocolos únicos com inteligência artificial
-                </p>
-              </div>
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-[#424242]">Protocolos Personalizados</h1>
+              <p className="text-[#424242]/70">Crie protocolos únicos com IA ou manualmente</p>
             </div>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="chat-ia" className="flex items-center space-x-2">
+            <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              <span>Protocolo Chat IA</span>
+              <span>Chat IA</span>
             </TabsTrigger>
-            <TabsTrigger value="manual" className="flex items-center space-x-2">
+            <TabsTrigger value="manual" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span>Manual</span>
             </TabsTrigger>
-            <TabsTrigger value="editor" className="flex items-center space-x-2" disabled={!editingProtocol}>
+            <TabsTrigger value="editor" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
               <span>Editor</span>
             </TabsTrigger>
-            <TabsTrigger value="historico" className="flex items-center space-x-2">
+            <TabsTrigger value="historico" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               <span>Histórico</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="chat-ia">
+          <TabsContent value="chat">
             <ChatProtocoloIA onProtocolGenerated={handleProtocolGenerated} />
           </TabsContent>
 

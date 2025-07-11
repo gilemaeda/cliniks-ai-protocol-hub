@@ -7,19 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/auth/authContext';
 import { Search, Edit, Copy, Download, Calendar, Trash2, User } from 'lucide-react';
-import { Protocol } from '@/hooks/useProtocolosQuery';
+// import { Protocol } from '@/hooks/useProtocolosQuery'; // Removido - hook não existe mais
 import jsPDF from 'jspdf';
 
 interface HistoricoProtocolosProps {
-  protocols: Protocol[];
+  protocols: any[]; // Simplificado
   isLoading: boolean;
   error: Error | null;
-  onEditProtocol: (protocol: Protocol) => void;
+  onEditProtocol: (protocol: any) => void; // Simplificado
   refetchProtocols: () => void;
 }
 
 const HistoricoProtocolos = ({ onEditProtocol, protocols, isLoading, error, refetchProtocols }: HistoricoProtocolosProps) => {
-  const createSummary = (content: Protocol['content'], length = 100) => {
+  const createSummary = (content: any, length = 100) => { // Simplificado
     const text = typeof content === 'string' ? content : content?.generated_protocol || '';
     if (!text) return 'Sem conteúdo para exibir.';
     if (text.length <= length) return text;
@@ -40,7 +40,7 @@ const HistoricoProtocolos = ({ onEditProtocol, protocols, isLoading, error, refe
     }
   }, [error, toast]);
 
-  const handleDuplicate = async (protocol: Protocol) => {
+  const handleDuplicate = async (protocol: any) => { // Simplificado
     try {
       const contentText = typeof protocol.content === 'string'
         ? protocol.content
@@ -108,7 +108,7 @@ const HistoricoProtocolos = ({ onEditProtocol, protocols, isLoading, error, refe
     }
   };
 
-  const handleExportPDF = (protocol: Protocol) => {
+  const handleExportPDF = (protocol: any) => { // Simplificado
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 20;

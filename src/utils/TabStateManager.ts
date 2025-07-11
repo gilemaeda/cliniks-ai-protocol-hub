@@ -253,7 +253,7 @@ class TabStateManager {
     // Coletar dados de formulários com atributo data-preserve="true"
     document.querySelectorAll('form[data-preserve="true"]').forEach((form, index) => {
       const formId = form.id || `form_${index}`;
-      const formElements = form.elements;
+      const formElements = Array.from(form.querySelectorAll('input, select, textarea')) as HTMLInputElement[];
       const formValues: Record<string, any> = {};
       
       for (let i = 0; i < formElements.length; i++) {
